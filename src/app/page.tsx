@@ -1,0 +1,748 @@
+'use client';
+
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import dynamic from 'next/dynamic';
+import { Item, ItemType, Category, User, FilterState, GeoLocation } from '@/types';
+import { getStoredItems, getStoredUser, setStoredUser, filterItems, getStoredClaims } from '@/lib/itemService';
+import { ALREADY_CLAIMED_ERROR, findUserClaim } from '@/lib/claims';
+import { Claim } from '@/types';
+import { getCurrentPosition, reverseGeocode, searchAddress, AddressSearchResult } from '@/lib/geo';
+import Navbar from '@/components/Navbar';
+import ItemCard from '@/components/ItemCard';
+import ItemDetailModal from '@/components/ItemDetailModal';
+import ClaimModal from '@/components/ClaimModal';
+import ReportItemModal from '@/components/ReportItemModal';
+import AuthModal from '@/components/AuthModal';
+import LogoutModal from '@/components/LogoutModal';
+import GlobalLoader from '@/components/GlobalLoader';
+import { isOwnItem, OWN_ITEM_CLAIM_ERROR } from '@/lib/ownership';
+import { supabaseBrowser } from '@/lib/supabaseBrowser';
+import { fetchCurrentUser, loginOrRegisterWithGoogle, logoutRequest } from '@/lib/authClient';
+import {
+  Search,
+  Filter,
+  MapPin,
+  Calendar,
+  Grid,
+  Map as MapIcon,
+  RotateCcw,
+  Navigation,
+  Sparkles,
+  ShieldCheck,
+  CheckCircle2,
+  Clock,
+  Layers,
+  Loader2,
+} from 'lucide-react';
+
+const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false });
+
+export default function HomePage() {
+  const [items, setItems] = useState<Item[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [claims, setClaims] = useState<Claim[]>([]);
+
+  // Active Modals
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [claimTargetItem, setClaimTargetItem] = useState<Item | null>(null);
+  const [reportModalType, setReportModalType] = useState<ItemType | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [authPromptMessage, setAuthPromptMessage] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<
+    | { type: 'report'; itemType: ItemType }
+    | { type: 'claim'; item: Item }
+    | null
+  >(null);
+
+  // View state: 'split' | 'grid' | 'map'
+  const [viewMode, setViewMode] = useState<'split' | 'grid' | 'map'>('split');
+
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<ItemType | 'all'>('found'); // Default to found items list as requested
+  const [radiusKm, setRadiusKm] = useState<number>(5); // Default 5km radius
+  const [centerLocation, setCenterLocation] = useState<GeoLocation | null>({
+    lat: 37.7749,
+    lng: -122.4194,
+    address: 'San Francisco, CA (Default Search Center)',
+  });
+  const [locationSearchInput, setLocationSearchInput] = useState('');
+  const [locationSuggestions, setLocationSuggestions] = useState<AddressSearchResult[]>([]);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [isLocatingUser, setIsLocatingUser] = useState(false);
+
+  // ---------------------------------------------------------------
+  // Auth: validate the 24h session token, and handle the Google
+  // OAuth callback (login if the user exists, otherwise register).
+  // ---------------------------------------------------------------
+  const processedGoogleToken = useRef<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    // Drop a stale/expired stored user (token is valid for 24h).
+    fetchCurrentUser()
+      .then((user) => {
+        if (!active) return;
+        setStoredUser(user);
+        setCurrentUser(user);
+      })
+      .catch((e) => console.error('Session check failed:', e));
+
+    const handleGoogleSession = async (accessToken: string) => {
+      if (processedGoogleToken.current === accessToken) return;
+      processedGoogleToken.current = accessToken;
+      try {
+        const user = await loginOrRegisterWithGoogle(accessToken);
+        if (!active) return;
+        setStoredUser(user);
+        setCurrentUser(user);
+        setShowAuthModal(false);
+      } catch (e) {
+        console.error('Google sign-in failed:', e);
+        alert('Google sign-in failed. Please try again.');
+      } finally {
+        // Our own 24h token now represents the session; drop Supabase's copy.
+        await supabaseBrowser.auth.signOut({ scope: 'local' });
+      }
+    };
+
+    const { data: sub } = supabaseBrowser.auth.onAuthStateChange((event, session) => {
+      if (
+        (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') &&
+        session?.access_token &&
+        session.user?.app_metadata?.provider === 'google'
+      ) {
+        // Defer: Supabase recommends not awaiting its own calls inside this callback.
+        setTimeout(() => handleGoogleSession(session.access_token), 0);
+      }
+    });
+
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Load Initial Data & Auto-detect User's Current GPS Location
+  useEffect(() => {
+    setItems(getStoredItems());
+    setCurrentUser(getStoredUser());
+    setClaims(getStoredClaims());
+
+    // Automatically detect user's current location to deliver location-specific results
+    let isMounted = true;
+    const autoDetectUserLocation = async () => {
+      try {
+        setIsLocatingUser(true);
+        const pos = await getCurrentPosition();
+        const addr = await reverseGeocode(pos.lat, pos.lng);
+        if (isMounted) {
+          setCenterLocation({
+            lat: pos.lat,
+            lng: pos.lng,
+            address: addr,
+          });
+        }
+      } catch {
+        // Fallback to default SF or manual search without throwing errors
+      } finally {
+        if (isMounted) setIsLocatingUser(false);
+      }
+    };
+
+    autoDetectUserLocation();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Debounced search for address in filter bar
+  useEffect(() => {
+    if (!locationSearchInput || locationSearchInput.length < 3 || !showLocationDropdown) {
+      setLocationSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingLocation(true);
+      try {
+        const results = await searchAddress(locationSearchInput);
+        setLocationSuggestions(results);
+      } catch {
+        setLocationSuggestions([]);
+      } finally {
+        setIsSearchingLocation(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [locationSearchInput, showLocationDropdown]);
+
+  const handleSelectLocationSuggestion = (item: AddressSearchResult) => {
+    setCenterLocation({
+      lat: item.lat,
+      lng: item.lng,
+      address: item.display_name,
+    });
+    setLocationSearchInput('');
+    setShowLocationDropdown(false);
+  };
+
+  // Filter calculations
+  const filterState: FilterState = useMemo(() => ({
+    searchQuery,
+    category: selectedCategory,
+    type: selectedType,
+    radiusKm,
+    centerLocation,
+    startDate: startDate ? new Date(startDate).toISOString() : undefined,
+    endDate: endDate ? new Date(endDate).toISOString() : undefined,
+  }), [searchQuery, selectedCategory, selectedType, radiusKm, centerLocation, startDate, endDate]);
+
+  // Home screen hides the logged-in user's own posts – they live under /profile.
+  const visibleItems = useMemo(
+    () => items.filter((i) => !isOwnItem(i, currentUser)),
+    [items, currentUser]
+  );
+
+  const filteredItems = useMemo(() => {
+    return filterItems(visibleItems, filterState);
+  }, [visibleItems, filterState]);
+
+  // Handle GPS Center Location
+  const handleUseMyGPS = async () => {
+    setIsLocatingUser(true);
+    try {
+      const pos = await getCurrentPosition();
+      const addr = await reverseGeocode(pos.lat, pos.lng);
+      setCenterLocation({
+        lat: pos.lat,
+        lng: pos.lng,
+        address: addr,
+      });
+    } catch {
+      alert('Unable to retrieve GPS position. Please check your browser permissions.');
+    } finally {
+      setIsLocatingUser(false);
+    }
+  };
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('all');
+    setSelectedType('found');
+    setRadiusKm(5);
+    setStartDate('');
+    setEndDate('');
+    setCenterLocation(null);
+  };
+
+  const handleItemCreated = (newItem: Item) => {
+    setItems((prev) => [newItem, ...prev]);
+    setSelectedItem(newItem);
+  };
+
+  const handleLogout = async () => {
+    await logoutRequest();
+    await supabaseBrowser.auth.signOut({ scope: 'local' }).catch(() => {});
+    setStoredUser(null);
+    setCurrentUser(null);
+    setShowLogoutModal(false);
+  };
+
+  // User-specific actions requiring login
+  const handleOpenReport = (type: ItemType) => {
+    if (!currentUser) {
+      setAuthPromptMessage(
+        type === 'found'
+          ? 'Please sign in to report a found item with photos and location.'
+          : 'Please sign in to report a lost item.'
+      );
+      setPendingAction({ type: 'report', itemType: type });
+      setShowAuthModal(true);
+      return;
+    }
+    setReportModalType(type);
+  };
+
+  const handleOpenClaim = (item: Item) => {
+    if (!currentUser) {
+      setAuthPromptMessage(`Please sign in to submit a 3-point ownership claim for "${item.title}".`);
+      setPendingAction({ type: 'claim', item });
+      setShowAuthModal(true);
+      return;
+    }
+    if (isOwnItem(item, currentUser)) {
+      alert(OWN_ITEM_CLAIM_ERROR);
+      return;
+    }
+    if (findUserClaim(claims, item.id, currentUser)) {
+      alert(ALREADY_CLAIMED_ERROR);
+      return;
+    }
+    setClaimTargetItem(item);
+  };
+
+  const handleLoginSuccess = (user: User) => {
+    setCurrentUser(user);
+    // Automatically resume pending action if user tried to do something before login
+    if (pendingAction) {
+      if (pendingAction.type === 'report') {
+        setReportModalType(pendingAction.itemType);
+      } else if (pendingAction.type === 'claim') {
+        if (isOwnItem(pendingAction.item, user)) {
+          alert(OWN_ITEM_CLAIM_ERROR);
+        } else if (findUserClaim(claims, pendingAction.item.id, user)) {
+          alert(ALREADY_CLAIMED_ERROR);
+        } else {
+          setClaimTargetItem(pendingAction.item);
+        }
+      }
+      setPendingAction(null);
+      setAuthPromptMessage(null);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      {/* Navigation */}
+      <Navbar
+        currentUser={currentUser}
+        onOpenAuth={() => {
+          setAuthPromptMessage(null);
+          setShowAuthModal(true);
+        }}
+        onLogout={() => setShowLogoutModal(true)}
+        onOpenReport={handleOpenReport}
+      />
+
+      {/* Hero & Filter Panel */}
+      <section className="bg-white border-b border-gray-200/80 shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                Community Lost & Found
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Browse found items, search within a 5km radius, or report lost items with geocoded accuracy.
+              </p>
+            </div>
+
+            {/* Quick Stats Banner */}
+            <div className="flex items-center gap-3 bg-blue-50/70 border border-blue-100 px-4 py-2 rounded-2xl">
+              <div className="flex items-center gap-2 text-xs font-semibold text-blue-900">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>{visibleItems.filter((i) => i.type === 'found').length} Found Items</span>
+              </div>
+              <div className="h-4 w-px bg-blue-200"></div>
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-900">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>3-Proof Security</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Primary Filter Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* 1. Search Query */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search items (e.g. iPhone, Wallet, Dog)..."
+                className="w-full pl-9 pr-3 py-2.5 bg-gray-50 hover:bg-white focus:bg-white border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              />
+            </div>
+
+            {/* 2. Category Selector */}
+            <div className="relative">
+              <Layers className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full pl-9 pr-3 py-2.5 bg-gray-50 hover:bg-white focus:bg-white border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition appearance-none cursor-pointer"
+              >
+                <option value="all">All Categories</option>
+                <option value="electronics">Electronics</option>
+                <option value="wallets">Wallets & Purses</option>
+                <option value="keys">Keys & Fobs</option>
+                <option value="bags">Bags & Backpacks</option>
+                <option value="documents">IDs & Documents</option>
+                <option value="jewelry">Jewelry & Watches</option>
+                <option value="pets">Pets</option>
+                <option value="clothing">Clothing & Accessories</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            {/* 3. Location Search & Radius Filter (5km) */}
+            <div className="relative">
+              <div className="flex items-center gap-1.5">
+                <div className="relative flex-1">
+                  <MapPin className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={locationSearchInput}
+                    onChange={(e) => {
+                      setLocationSearchInput(e.target.value);
+                      setShowLocationDropdown(true);
+                    }}
+                    onFocus={() => {
+                      if (locationSuggestions.length > 0) setShowLocationDropdown(true);
+                    }}
+                    placeholder="Search location (e.g. City, Landmark)..."
+                    className="w-full pl-8 pr-7 py-2.5 bg-gray-50 hover:bg-white focus:bg-white border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  />
+                  {isSearchingLocation && (
+                    <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin absolute right-2.5 top-1/2 -translate-y-1/2" />
+                  )}
+                </div>
+
+                <button
+                  onClick={handleUseMyGPS}
+                  disabled={isLocatingUser}
+                  title="Use current GPS location"
+                  className={`px-2.5 py-2.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-semibold flex items-center gap-1 transition shrink-0 ${
+                    isLocatingUser ? 'opacity-50' : ''
+                  }`}
+                >
+                  <Navigation className={`w-3.5 h-3.5 ${isLocatingUser ? 'animate-spin' : ''}`} />
+                  <span className="hidden xl:inline">GPS</span>
+                </button>
+
+                <select
+                  value={radiusKm}
+                  onChange={(e) => setRadiusKm(Number(e.target.value))}
+                  className="py-2.5 px-2 bg-gray-50 hover:bg-white focus:bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer shrink-0"
+                >
+                  <option value={1}>1 km</option>
+                  <option value={3}>3 km</option>
+                  <option value={5}>5 km</option>
+                  <option value={10}>10 km</option>
+                  <option value={25}>25 km</option>
+                </select>
+              </div>
+
+              {/* Location Autocomplete Dropdown */}
+              {showLocationDropdown && locationSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto divide-y divide-gray-100">
+                  {locationSuggestions.map((item) => (
+                    <button
+                      key={item.place_id}
+                      type="button"
+                      onClick={() => handleSelectLocationSuggestion(item)}
+                      className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50 text-xs text-gray-700 flex items-start gap-2 transition"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                      <span className="line-clamp-2 leading-relaxed">{item.display_name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 4. Date Range Filter */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  title="Lost/Found on or after this date"
+                  className="w-full py-2 px-2.5 bg-gray-50 hover:bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <button
+                onClick={handleResetFilters}
+                title="Reset all filters"
+                className="p-2.5 rounded-xl border border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition shrink-0"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Active Center Location Indicator */}
+          {centerLocation && (
+            <div className="mt-3 flex items-center justify-between text-xs text-blue-700 bg-blue-50/60 px-3 py-1.5 rounded-lg border border-blue-100">
+              <div className="flex items-center gap-1.5 truncate">
+                <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span className="truncate font-medium">
+                  Filtering within <strong>{radiusKm} km</strong> of: {centerLocation.address}
+                </span>
+              </div>
+              <button
+                onClick={() => setCenterLocation(null)}
+                className="text-xs text-blue-500 hover:text-blue-800 font-semibold underline ml-2 shrink-0"
+              >
+                Clear Location
+              </button>
+            </div>
+          )}
+
+          {/* Subheader: Type Tabs + View Switcher */}
+          <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-gray-100 pt-4">
+            {/* Type Filter Tabs */}
+            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl w-full sm:w-auto">
+              <button
+                onClick={() => setSelectedType('found')}
+                className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition ${
+                  selectedType === 'found'
+                    ? 'bg-emerald-600 text-white shadow'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Found Items ({visibleItems.filter((i) => i.type === 'found').length})
+              </button>
+              <button
+                onClick={() => setSelectedType('lost')}
+                className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition ${
+                  selectedType === 'lost'
+                    ? 'bg-amber-500 text-white shadow'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Lost Items ({visibleItems.filter((i) => i.type === 'lost').length})
+              </button>
+              <button
+                onClick={() => setSelectedType('all')}
+                className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition ${
+                  selectedType === 'all'
+                    ? 'bg-gray-800 text-white shadow'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                All Reports ({visibleItems.length})
+              </button>
+            </div>
+
+            {/* View Mode Buttons (Split / Grid / Map) */}
+            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl self-end">
+              <button
+                onClick={() => setViewMode('split')}
+                title="Split Map & Grid"
+                className={`hidden lg:flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  viewMode === 'split' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Split</span>
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                title="Grid View"
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
+                }`}
+              >
+                <Grid className="w-3.5 h-3.5" />
+                <span>Cards</span>
+              </button>
+              <button
+                onClick={() => setViewMode('map')}
+                title="Map View"
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  viewMode === 'map' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
+                }`}
+              >
+                <MapIcon className="w-3.5 h-3.5" />
+                <span>Map</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content Area */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+        {filteredItems.length === 0 ? (
+          <div className="bg-white rounded-3xl border border-gray-200 p-8 sm:p-12 text-center max-w-lg mx-auto shadow-sm my-8">
+            <div className="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-4">
+              <MapPin className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900">
+              {centerLocation ? `No items reported within ${radiusKm}km of your location` : 'No matching items found'}
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-500 mt-2 leading-relaxed">
+              {centerLocation ? (
+                <>
+                  Searching near <strong className="text-gray-700">{centerLocation.address}</strong>. No items have been reported in this immediate {radiusKm}km radius yet.
+                </>
+              ) : (
+                'Try increasing your search radius or clearing category filters.'
+              )}
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+              <button
+                onClick={() => setRadiusKm(25)}
+                className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold shadow hover:bg-blue-700 transition"
+              >
+                Expand Radius to 25 km
+              </button>
+              <button
+                onClick={() => setCenterLocation(null)}
+                className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-200 transition"
+              >
+                Show All Global Items
+              </button>
+              <button
+                onClick={() => handleOpenReport('found')}
+                className="px-4 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold hover:bg-emerald-100 transition"
+              >
+                Report Item Here
+              </button>
+            </div>
+          </div>
+        ) : viewMode === 'split' ? (
+          /* Split View (Cards on left, Interactive Map on right) */
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {filteredItems.map((item) => (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  onSelect={(i) => setSelectedItem(i)}
+                  onClaimClick={(i) => handleOpenClaim(i)}
+                  isOwner={isOwnItem(item, currentUser)}
+                  myClaim={findUserClaim(claims, item.id, currentUser)}
+                />
+              ))}
+            </div>
+
+            <div className="lg:col-span-5 sticky top-24">
+              <div className="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-100 text-xs font-bold text-gray-700">
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-blue-600" />
+                    Interactive Map ({filteredItems.length} items)
+                  </span>
+                  <span className="text-[11px] text-gray-400 font-normal">Blue circle: {radiusKm}km radius</span>
+                </div>
+                <MapComponent
+                  items={filteredItems}
+                  centerLocation={centerLocation}
+                  radiusKm={radiusKm}
+                  onSelectItem={(item) => setSelectedItem(item)}
+                  height="580px"
+                />
+              </div>
+            </div>
+          </div>
+        ) : viewMode === 'grid' ? (
+          /* Full Grid View */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {filteredItems.map((item) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                onSelect={(i) => setSelectedItem(i)}
+                onClaimClick={(i) => handleOpenClaim(i)}
+                isOwner={isOwnItem(item, currentUser)}
+                myClaim={findUserClaim(claims, item.id, currentUser)}
+              />
+            ))}
+          </div>
+        ) : (
+          /* Full Map View */
+          <div className="bg-white p-3 rounded-3xl border border-gray-200 shadow-sm">
+            <MapComponent
+              items={filteredItems}
+              centerLocation={centerLocation}
+              radiusKm={radiusKm}
+              onSelectItem={(item) => setSelectedItem(item)}
+              height="650px"
+            />
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="mt-auto bg-white border-t border-gray-200 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+          <div>
+            <span className="font-bold text-gray-800">LostFound</span> &mdash; Geocoded community recovery system with 3-point claim verification.
+          </div>
+          <div className="flex items-center gap-4">
+            <span>Powered by PostgreSQL / PostGIS</span>
+            <span>&bull;</span>
+            <button onClick={() => setShowAuthModal(true)} className="hover:text-blue-600 font-medium">
+              Account Login
+            </button>
+          </div>
+        </div>
+      </footer>
+
+      {/* Item Detail Modal */}
+      {selectedItem && (
+        <ItemDetailModal
+          key={selectedItem.id}
+          item={selectedItem}
+          isOwner={isOwnItem(selectedItem, currentUser)}
+          currentUser={currentUser}
+          onClose={() => setSelectedItem(null)}
+          onClaim={(item) => {
+            setSelectedItem(null);
+            handleOpenClaim(item);
+          }}
+        />
+      )}
+
+      {/* Claim Modal (3 Secret Proofs) */}
+      {claimTargetItem && (
+        <ClaimModal
+          item={claimTargetItem}
+          currentUser={currentUser}
+          onClose={() => setClaimTargetItem(null)}
+          onSuccess={() => {
+            setClaims(getStoredClaims());
+            alert('Your claim has been submitted to the finder with all 3 verification proofs!');
+          }}
+        />
+      )}
+
+      {/* Report Modal (Found or Lost) */}
+      {reportModalType && (
+        <ReportItemModal
+          initialType={reportModalType}
+          currentUser={currentUser}
+          defaultLocation={centerLocation}
+          onClose={() => setReportModalType(null)}
+          onSuccess={handleItemCreated}
+        />
+      )}
+
+
+      {/* Auth Modal with Multiple Methods (Google, Email/Password, Phone OTP) */}
+      <AuthModal
+        isOpen={showAuthModal}
+        promptMessage={authPromptMessage}
+        onClose={() => {
+          setShowAuthModal(false);
+          setAuthPromptMessage(null);
+        }}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
+      <LogoutModal
+        isOpen={showLogoutModal}
+        userName={currentUser?.name}
+        onCancel={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+      />
+
+      {/* Overlay shown while any API call is in flight */}
+      <GlobalLoader />
+    </div>
+  );
+}
+

@@ -1,0 +1,2 @@
+id,item_id,item_title,claimant_id,claimant_name,claimant_email,claimant_phone,proof_1,proof_2,proof_3,status,finder_notes,created_at
+claim-1,item-2,"Brown Leather Bifold Wallet",user-1,"Elena Rostova",elena.rostova@example.com,"+1 (555) 987-6543","Initials ""ER"" stamped on the inner left cash pocket","A gym membership barcode card for Crunch Fitness ending in 4921","A folded emergency silver key behind the card divider",pending,,"2026-11-10 11:03:58"

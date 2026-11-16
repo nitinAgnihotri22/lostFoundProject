@@ -4,7 +4,7 @@
 // so it must never be imported from client components.
 
 import crypto from 'crypto';
-import { createClient } from '@supabase/supabase-js';
+import { lazySupabase, requireEnv } from './lazySupabase';
 
 export type RoleSource = 'google' | 'normal_register';
 export type RoleType = 'social' | 'email';
@@ -35,9 +35,9 @@ export interface PublicUser {
   roleType: RoleType;
 }
 
-export const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+export const supabaseAdmin = lazySupabase(
+  () => requireEnv('NEXT_PUBLIC_SUPABASE_URL', process.env.NEXT_PUBLIC_SUPABASE_URL),
+  () => requireEnv('SUPABASE_SERVICE_ROLE_KEY', process.env.SUPABASE_SERVICE_ROLE_KEY),
   { auth: { persistSession: false, autoRefreshToken: false } }
 );
 

@@ -7,16 +7,16 @@
 // -------------------------------------------------
 
 import crypto from 'crypto';
-import { createClient } from '@supabase/supabase-js';
+import { lazySupabase, requireEnv } from './lazySupabase';
 import { Item, Claim, Category } from '@/types';
 
 // -------------------------------------------------------------------
 // Supabase client – service role key (keep secret, not exposed to the
 // browser). Values are read from environment variables.
 // -------------------------------------------------------------------
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabase = lazySupabase(
+  () => requireEnv('NEXT_PUBLIC_SUPABASE_URL', process.env.NEXT_PUBLIC_SUPABASE_URL),
+  () => requireEnv('SUPABASE_SERVICE_ROLE_KEY', process.env.SUPABASE_SERVICE_ROLE_KEY)
 );
 
 // -------------------------------------------------------------------

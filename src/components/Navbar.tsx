@@ -12,6 +12,8 @@ interface NavbarProps {
   onOpenReport: (type: ItemType) => void;
   unreadCount?: number;
   onOpenMessages?: () => void;
+  /** Rendered next to the logo (the homepage puts its location picker here). */
+  locationSlot?: React.ReactNode;
 }
 
 export default function Navbar({
@@ -21,16 +23,18 @@ export default function Navbar({
   onOpenReport,
   unreadCount = 0,
   onOpenMessages,
+  locationSlot,
 }: NavbarProps) {
   return (
     <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-        {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-3">
+        {/* Brand Logo + location */}
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+        <Link href="/" className="flex items-center gap-3 shrink-0">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
             <Compass className="w-6 h-6 animate-pulse" />
           </div>
-          <div>
+          <div className={locationSlot ? 'hidden md:block' : undefined}>
             <span className="text-xl font-black tracking-tight text-gray-900">
               Lost<span className="text-blue-600">Found</span>
             </span>
@@ -39,6 +43,9 @@ export default function Navbar({
             </span>
           </div>
         </Link>
+
+        {locationSlot && <div className="min-w-0 sm:pl-4 sm:border-l sm:border-gray-200">{locationSlot}</div>}
+        </div>
 
         {/* Center / Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
@@ -49,15 +56,6 @@ export default function Navbar({
           >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Report</span> Found Item
-          </button>
-
-          {/* Report Lost Item Button */}
-          <button
-            onClick={() => onOpenReport('lost')}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm hover:shadow transition"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Report</span> Lost Item
           </button>
 
           {/* Messages */}

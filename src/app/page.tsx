@@ -7,7 +7,8 @@ import { getStoredUser, setStoredUser, filterItems } from '@/lib/itemService';
 import { ALREADY_CLAIMED_ERROR } from '@/lib/claims';
 import { api, UNAUTHORIZED_EVENT } from '@/lib/api';
 import ChatPanel from '@/components/ChatPanel';
-import { getCurrentPosition, reverseGeocode, searchAddress, AddressSearchResult } from '@/lib/geo';
+import { getCurrentPosition, reverseGeocodePlace } from '@/lib/geo';
+import LocationPicker from '@/components/LocationPicker';
 import Navbar from '@/components/Navbar';
 import ItemCard from '@/components/ItemCard';
 import ItemDetailModal from '@/components/ItemDetailModal';
@@ -27,7 +28,6 @@ import {
   Grid,
   Map as MapIcon,
   RotateCcw,
-  Navigation,
   Sparkles,
   ShieldCheck,
   CheckCircle2,
@@ -69,19 +69,17 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<ItemType | 'all'>('found'); // Default to found items list as requested
   const [radiusKm, setRadiusKm] = useState<number>(5); // Default 5km radius
-  const [centerLocation, setCenterLocation] = useState<GeoLocation | null>({
-    lat: 37.7749,
-    lng: -122.4194,
-    address: 'San Francisco, CA (Default Search Center)',
-  });
-  const [locationSearchInput, setLocationSearchInput] = useState('');
-  const [locationSuggestions, setLocationSuggestions] = useState<AddressSearchResult[]>([]);
-  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
-  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [centerLocation, setCenterLocation] = useState<GeoLocation | null>(null);
+  // Hold the item list back until the first location lookup settles, so the
+  // page doesn't flash unfiltered items and then re-filter by location.
+  const [initialLocationResolved, setInitialLocationResolved] = useState(false);
+  // The device's own position (once known) and whether the search center is that position.
+  const [gpsPosition, setGpsPosition] = useState<GeoLocation | null>(null);
+  const [isCurrentLocation, setIsCurrentLocation] = useState(false);
 
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [isLocatingUser, setIsLocatingUser] = useState(false);
+  const [isLocatingUser, setIsLocatingUser] = useState(true);
 
   // ---------------------------------------------------------------
   // Auth: validate the 24h session token, and handle the Google
@@ -198,18 +196,23 @@ export default function HomePage() {
       try {
         setIsLocatingUser(true);
         const pos = await getCurrentPosition();
-        const addr = await reverseGeocode(pos.lat, pos.lng);
-        if (isMounted) {
-          setCenterLocation({
-            lat: pos.lat,
-            lng: pos.lng,
-            address: addr,
-          });
-        }
+        if (!isMounted) return;
+        // Filter by coordinates right away; the readable place name follows.
+        setCenterLocation({ lat: pos.lat, lng: pos.lng, address: 'Your current location' });
+        setIsCurrentLocation(true);
+        setInitialLocationResolved(true);
+        const place = await reverseGeocodePlace(pos.lat, pos.lng);
+        if (!isMounted) return;
+        setGpsPosition(place);
+        // Only fill in the name if the user hasn't picked another place meanwhile.
+        setCenterLocation((prev) => (prev && prev.lat === pos.lat && prev.lng === pos.lng ? place : prev));
       } catch {
-        // Fallback to default SF or manual search without throwing errors
+        // Location unavailable/denied: show all items; the user can search a location manually.
       } finally {
-        if (isMounted) setIsLocatingUser(false);
+        if (isMounted) {
+          setInitialLocationResolved(true);
+          setIsLocatingUser(false);
+        }
       }
     };
 
@@ -219,36 +222,14 @@ export default function HomePage() {
     };
   }, [loadItems]);
 
-  // Debounced search for address in filter bar
-  useEffect(() => {
-    if (!locationSearchInput || locationSearchInput.length < 3 || !showLocationDropdown) {
-      setLocationSuggestions([]);
-      return;
-    }
+  const handleSelectLocation = (location: GeoLocation) => {
+    setCenterLocation(location);
+    setIsCurrentLocation(false);
+  };
 
-    const timer = setTimeout(async () => {
-      setIsSearchingLocation(true);
-      try {
-        const results = await searchAddress(locationSearchInput);
-        setLocationSuggestions(results);
-      } catch {
-        setLocationSuggestions([]);
-      } finally {
-        setIsSearchingLocation(false);
-      }
-    }, 350);
-
-    return () => clearTimeout(timer);
-  }, [locationSearchInput, showLocationDropdown]);
-
-  const handleSelectLocationSuggestion = (item: AddressSearchResult) => {
-    setCenterLocation({
-      lat: item.lat,
-      lng: item.lng,
-      address: item.display_name,
-    });
-    setLocationSearchInput('');
-    setShowLocationDropdown(false);
+  const handleShowAllLocations = () => {
+    setCenterLocation(null);
+    setIsCurrentLocation(false);
   };
 
   // Filter calculations
@@ -268,21 +249,31 @@ export default function HomePage() {
     [items, currentUser]
   );
 
-  const filteredItems = useMemo(() => {
-    return filterItems(visibleItems, filterState);
-  }, [visibleItems, filterState]);
+  // Every active filter except the Found/Lost tab – the tab counts come from this.
+  const itemsMatchingFiltersAllTypes = useMemo(
+    () => filterItems(visibleItems, { ...filterState, type: 'all' }),
+    [visibleItems, filterState]
+  );
+  const foundCount = itemsMatchingFiltersAllTypes.filter((i) => i.type === 'found').length;
+  const lostCount = itemsMatchingFiltersAllTypes.filter((i) => i.type === 'lost').length;
+
+  const filteredItems = useMemo(
+    () =>
+      selectedType === 'all'
+        ? itemsMatchingFiltersAllTypes
+        : itemsMatchingFiltersAllTypes.filter((i) => i.type === selectedType),
+    [itemsMatchingFiltersAllTypes, selectedType]
+  );
 
   // Handle GPS Center Location
   const handleUseMyGPS = async () => {
     setIsLocatingUser(true);
     try {
       const pos = await getCurrentPosition();
-      const addr = await reverseGeocode(pos.lat, pos.lng);
-      setCenterLocation({
-        lat: pos.lat,
-        lng: pos.lng,
-        address: addr,
-      });
+      const place = await reverseGeocodePlace(pos.lat, pos.lng);
+      setGpsPosition(place);
+      setCenterLocation(place);
+      setIsCurrentLocation(true);
     } catch {
       alert('Unable to retrieve GPS position. Please check your browser permissions.');
     } finally {
@@ -297,7 +288,9 @@ export default function HomePage() {
     setRadiusKm(5);
     setStartDate('');
     setEndDate('');
-    setCenterLocation(null);
+    // Back to the default: the user's current location if we have it, else everywhere.
+    setCenterLocation(gpsPosition);
+    setIsCurrentLocation(!!gpsPosition);
   };
 
   const handleItemCreated = (newItem: Item) => {
@@ -391,6 +384,17 @@ export default function HomePage() {
         onOpenReport={handleOpenReport}
         unreadCount={unreadCount}
         onOpenMessages={() => openChat(null)}
+        locationSlot={
+          <LocationPicker
+            value={centerLocation}
+            isCurrentLocation={isCurrentLocation}
+            isLocating={isLocatingUser}
+            nearbyAnchor={gpsPosition ?? centerLocation}
+            onUseCurrentLocation={handleUseMyGPS}
+            onSelect={handleSelectLocation}
+            onShowAll={handleShowAllLocations}
+          />
+        }
       />
 
       {itemsError && (
@@ -409,7 +413,7 @@ export default function HomePage() {
                 Community Lost & Found
               </h1>
               <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                Browse found items, search within a 5km radius, or report lost items with geocoded accuracy.
+                Browse found items near you, search within a 5km radius, or report something you found.
               </p>
             </div>
 
@@ -417,7 +421,7 @@ export default function HomePage() {
             <div className="flex items-center gap-3 bg-blue-50/70 border border-blue-100 px-4 py-2 rounded-2xl">
               <div className="flex items-center gap-2 text-xs font-semibold text-blue-900">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>{visibleItems.filter((i) => i.type === 'found').length} Found Items</span>
+                <span>{initialLocationResolved ? foundCount : '–'} Found Items</span>
               </div>
               <div className="h-4 w-px bg-blue-200"></div>
               <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-900">
@@ -462,70 +466,24 @@ export default function HomePage() {
               </select>
             </div>
 
-            {/* 3. Location Search & Radius Filter (5km) */}
+            {/* 3. Search Radius (location is chosen from the picker in the navbar) */}
             <div className="relative">
-              <div className="flex items-center gap-1.5">
-                <div className="relative flex-1">
-                  <MapPin className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={locationSearchInput}
-                    onChange={(e) => {
-                      setLocationSearchInput(e.target.value);
-                      setShowLocationDropdown(true);
-                    }}
-                    onFocus={() => {
-                      if (locationSuggestions.length > 0) setShowLocationDropdown(true);
-                    }}
-                    placeholder="Search location (e.g. City, Landmark)..."
-                    className="w-full pl-8 pr-7 py-2.5 bg-gray-50 hover:bg-white focus:bg-white border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  />
-                  {isSearchingLocation && (
-                    <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin absolute right-2.5 top-1/2 -translate-y-1/2" />
-                  )}
-                </div>
-
-                <button
-                  onClick={handleUseMyGPS}
-                  disabled={isLocatingUser}
-                  title="Use current GPS location"
-                  className={`px-2.5 py-2.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-semibold flex items-center gap-1 transition shrink-0 ${
-                    isLocatingUser ? 'opacity-50' : ''
-                  }`}
-                >
-                  <Navigation className={`w-3.5 h-3.5 ${isLocatingUser ? 'animate-spin' : ''}`} />
-                  <span className="hidden xl:inline">GPS</span>
-                </button>
-
-                <select
-                  value={radiusKm}
-                  onChange={(e) => setRadiusKm(Number(e.target.value))}
-                  className="py-2.5 px-2 bg-gray-50 hover:bg-white focus:bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer shrink-0"
-                >
-                  <option value={1}>1 km</option>
-                  <option value={3}>3 km</option>
-                  <option value={5}>5 km</option>
-                  <option value={10}>10 km</option>
-                  <option value={25}>25 km</option>
-                </select>
-              </div>
-
-              {/* Location Autocomplete Dropdown */}
-              {showLocationDropdown && locationSuggestions.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto divide-y divide-gray-100">
-                  {locationSuggestions.map((item) => (
-                    <button
-                      key={item.place_id}
-                      type="button"
-                      onClick={() => handleSelectLocationSuggestion(item)}
-                      className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50 text-xs text-gray-700 flex items-start gap-2 transition"
-                    >
-                      <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
-                      <span className="line-clamp-2 leading-relaxed">{item.display_name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
+              <MapPin className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <select
+                value={radiusKm}
+                onChange={(e) => setRadiusKm(Number(e.target.value))}
+                disabled={!centerLocation}
+                title={centerLocation ? 'Search radius' : 'Pick a location in the top bar to search by distance'}
+                className="w-full pl-9 pr-3 py-2.5 bg-gray-50 hover:bg-white focus:bg-white border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {centerLocation ? (
+                  [1, 3, 5, 10, 25, 50, 100].map((km) => (
+                    <option key={km} value={km}>Within {km} km</option>
+                  ))
+                ) : (
+                  <option>Any distance</option>
+                )}
+              </select>
             </div>
 
             {/* 4. Date Range Filter */}
@@ -559,7 +517,7 @@ export default function HomePage() {
                 </span>
               </div>
               <button
-                onClick={() => setCenterLocation(null)}
+                onClick={handleShowAllLocations}
                 className="text-xs text-blue-500 hover:text-blue-800 font-semibold underline ml-2 shrink-0"
               >
                 Clear Location
@@ -579,7 +537,7 @@ export default function HomePage() {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Found Items ({visibleItems.filter((i) => i.type === 'found').length})
+                Found Items ({initialLocationResolved ? foundCount : '–'})
               </button>
               <button
                 onClick={() => setSelectedType('lost')}
@@ -589,7 +547,7 @@ export default function HomePage() {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Lost Items ({visibleItems.filter((i) => i.type === 'lost').length})
+                Lost Items ({initialLocationResolved ? lostCount : '–'})
               </button>
               <button
                 onClick={() => setSelectedType('all')}
@@ -599,7 +557,7 @@ export default function HomePage() {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                All Reports ({visibleItems.length})
+                All Reports ({initialLocationResolved ? foundCount + lostCount : '–'})
               </button>
             </div>
 
@@ -642,7 +600,12 @@ export default function HomePage() {
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
-        {filteredItems.length === 0 ? (
+        {!initialLocationResolved ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-24 text-gray-500">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <p className="text-sm font-semibold">Finding items near you…</p>
+          </div>
+        ) : filteredItems.length === 0 ? (
           <div className="bg-white rounded-3xl border border-gray-200 p-8 sm:p-12 text-center max-w-lg mx-auto shadow-sm my-8">
             <div className="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-4">
               <MapPin className="w-8 h-8" />
@@ -667,7 +630,7 @@ export default function HomePage() {
                 Expand Radius to 25 km
               </button>
               <button
-                onClick={() => setCenterLocation(null)}
+                onClick={handleShowAllLocations}
                 className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-200 transition"
               >
                 Show All Global Items

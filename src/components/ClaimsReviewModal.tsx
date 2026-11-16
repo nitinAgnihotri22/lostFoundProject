@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Claim } from '@/types';
-import { updateClaimStatus } from '@/lib/itemService';
 import { X, ShieldCheck } from 'lucide-react';
 import ClaimReviewCard from './ClaimReviewCard';
 
@@ -11,20 +10,22 @@ interface ClaimsReviewModalProps {
   onClose: () => void;
   /** Claims on the current user's own items only – the parent filters. */
   claims: Claim[];
-  onStatusChange?: () => void;
+  /** Approve/reject through the API; the parent refreshes afterwards. */
+  onUpdate: (claimId: string, status: 'approved' | 'rejected', reason?: string) => void | Promise<void>;
+  onMessage?: (claim: Claim) => void;
 }
 
 export default function ClaimsReviewModal({
   isOpen,
   onClose,
   claims,
-  onStatusChange,
+  onUpdate,
+  onMessage,
 }: ClaimsReviewModalProps) {
   if (!isOpen) return null;
 
   const handleUpdate = (claimId: string, status: 'approved' | 'rejected', reason?: string) => {
-    updateClaimStatus(claimId, status, reason);
-    if (onStatusChange) onStatusChange();
+    void onUpdate(claimId, status, reason);
   };
 
   return (
@@ -63,7 +64,7 @@ export default function ClaimsReviewModal({
             </div>
           ) : (
             claims.map((claim) => (
-              <ClaimReviewCard key={claim.id} claim={claim} onUpdate={handleUpdate} />
+              <ClaimReviewCard key={claim.id} claim={claim} onUpdate={handleUpdate} onMessage={onMessage} />
             ))
           )}
         </div>

@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { Item, User } from '@/types';
-import { getStoredClaims, submitClaim } from '@/lib/itemService';
-import { ALREADY_CLAIMED_ERROR, findUserClaim } from '@/lib/claims';
+import { api, ApiError } from '@/lib/api';
+import { ALREADY_CLAIMED_ERROR } from '@/lib/claims';
 import { isOwnItem, OWN_ITEM_CLAIM_ERROR } from '@/lib/ownership';
 import { X, ShieldAlert, CheckCircle, HelpCircle, Lock } from 'lucide-react';
 
@@ -30,8 +30,13 @@ export default function ClaimModal({ item, currentUser, onClose, onSuccess }: Cl
     'What secret information or verification detail can you provide (e.g., lock screen photo, serial number digits, custom keychain)?'
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) {
+      alert('Please sign in to claim an item.');
+      onClose();
+      return;
+    }
     if (!proof1.trim() || !proof2.trim() || !proof3.trim()) {
       alert('You must provide answers to all 3 verification points to claim this item.');
       return;
@@ -41,35 +46,31 @@ export default function ClaimModal({ item, currentUser, onClose, onSuccess }: Cl
       onClose();
       return;
     }
-    if (findUserClaim(getStoredClaims(), item.id, currentUser)) {
+    if (item.myClaim) {
       alert(ALREADY_CLAIMED_ERROR);
       onClose();
       return;
     }
 
     setSubmitting(true);
-    const user = currentUser || {
-      id: 'guest-' + Date.now(),
-      name: 'Claimant User',
-      email: 'claimant@example.com',
-      phone: phone,
-    };
-
-    submitClaim(item, user, {
-      proof1,
-      proof2,
-      proof3,
-      phone,
-    });
-
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      await api.claims.create({ itemId: item.id, proof1: proof1.trim(), proof2: proof2.trim(), proof3: proof3.trim(), phone: phone.trim() || undefined });
       setSubmitted(true);
       setTimeout(() => {
         onSuccess();
         onClose();
       }, 2500);
-    }, 600);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Could not submit your claim.';
+      alert(msg);
+      // These states can't be fixed by editing the form – close it.
+      if (err instanceof ApiError && ['ALREADY_CLAIMED', 'OWN_ITEM', 'ITEM_CLOSED', 'NOT_CLAIMABLE'].includes(err.code ?? '')) {
+        onSuccess();
+        onClose();
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

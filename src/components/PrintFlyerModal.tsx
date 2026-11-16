@@ -137,7 +137,7 @@ export default function PrintFlyerModal({ item, onClose }: PrintFlyerModalProps)
                 IF SEEN OR FOUND, PLEASE CONTACT:
               </div>
               <div className="text-xl font-black text-blue-700">
-                {item.userPhone || item.userEmail}
+                {item.userPhone || item.userEmail || 'Message the poster on the LostFound app'}
               </div>
               <div className="text-xs text-gray-500">
                 Or report safely on <strong>LostFound Community Network</strong>

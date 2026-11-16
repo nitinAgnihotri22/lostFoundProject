@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Item, ItemType, Category, User, GeoLocation } from '@/types';
-import { saveItem } from '@/lib/itemService';
+import { api } from '@/lib/api';
 import { getCurrentPosition, reverseGeocode, searchAddress, AddressSearchResult } from '@/lib/geo';
 import { X, Upload, MapPin, Sparkles, Navigation, Plus, Trash2, Camera, Search, Loader2 } from 'lucide-react';
 
@@ -50,6 +50,9 @@ export default function ReportItemModal({
   // Images state
   const [images, setImages] = useState<string[]>([]);
   const [imageUrlInput, setImageUrlInput] = useState('');
+  const [uploading, setUploading] = useState(0); // photos currently being uploaded
+  const MAX_PHOTOS = 6;
+  const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
   // 3 Verification questions
   const [q1, setQ1] = useState('What unique marking, scratch, or color variation does it have?');
@@ -110,77 +113,106 @@ export default function ReportItemModal({
     setAddress(resolved);
   };
 
-  // Handle image file upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (uploadEvent) => {
-        if (uploadEvent.target?.result) {
-          setImages((prev) => [...prev, uploadEvent.target!.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+  // Photos are uploaded to storage as soon as they're picked; the report stores their URLs.
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (files.length === 0) return;
+    if (images.length + files.length > MAX_PHOTOS) {
+      alert(`You can attach up to ${MAX_PHOTOS} photos.`);
+      return;
+    }
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        alert(`${file.name} is not an image.`);
+        continue;
+      }
+      if (file.size > MAX_PHOTO_BYTES) {
+        alert(`${file.name} is larger than 5 MB. Please choose a smaller photo.`);
+        continue;
+      }
+      setUploading((n) => n + 1);
+      try {
+        const url = await api.uploads.photo(file);
+        setImages((prev) => [...prev, url]);
+      } catch (err) {
+        alert(err instanceof Error ? `Upload failed: ${err.message}` : 'Upload failed.');
+      } finally {
+        setUploading((n) => n - 1);
+      }
+    }
   };
 
   const handleAddImageUrl = () => {
-    if (imageUrlInput.trim()) {
-      setImages((prev) => [...prev, imageUrlInput.trim()]);
-      setImageUrlInput('');
+    const url = imageUrlInput.trim();
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url)) {
+      alert('Please paste a full image link starting with http:// or https://');
+      return;
     }
+    if (images.length >= MAX_PHOTOS) {
+      alert(`You can attach up to ${MAX_PHOTOS} photos.`);
+      return;
+    }
+    setImages((prev) => [...prev, url]);
+    setImageUrlInput('');
   };
 
   const removeImage = (idx: number) => {
     setImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !description.trim()) {
-      alert('Please fill in both the title and description.');
+    if (!currentUser) {
+      alert('Please sign in to post a report.');
       return;
     }
-
-    // Images are mandatory only for found items
+    if (title.trim().length < 3 || description.trim().length < 10) {
+      alert('Please give the item a title (3+ characters) and a description (10+ characters).');
+      return;
+    }
     if (type === 'found' && images.length === 0) {
       alert('Please add at least one photo of the found item so owners can identify it.');
       return;
     }
+    if (type === 'found' && [q1, q2, q3].some((q) => q.trim().length < 5)) {
+      alert('Please provide all 3 verification questions – they are how the true owner proves ownership.');
+      return;
+    }
+    if (uploading > 0) {
+      alert('Please wait for your photos to finish uploading.');
+      return;
+    }
+    if (new Date(occurredAt).getTime() > Date.now() + 5 * 60 * 1000) {
+      alert('The date and time cannot be in the future.');
+      return;
+    }
 
     setSubmitting(true);
-    const user = currentUser || {
-      id: 'guest-' + Date.now(),
-      name: 'Community Member',
-      email: 'user@example.com',
-    };
-
-    const created = saveItem({
-      type,
-      title,
-      description,
-      category,
-      images,
-      location: {
-        lat: coords.lat,
-        lng: coords.lng,
-        address: address || `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`,
-      },
-      occurredAt: new Date(occurredAt).toISOString(),
-      userId: user.id,
-      userName: user.name,
-      userEmail: user.email,
-      userPhone: user.phone,
-      verificationQuestions: [q1, q2, q3],
-    });
-
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      const hasQuestions = [q1, q2, q3].every((q) => q.trim().length >= 5);
+      const created = await api.items.create({
+        type,
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        images,
+        location: {
+          lat: coords.lat,
+          lng: coords.lng,
+          address: address || `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`,
+        },
+        occurredAt: new Date(occurredAt).toISOString(),
+        verificationQuestions: type === 'found' || hasQuestions ? [q1.trim(), q2.trim(), q3.trim()] : undefined,
+      });
       onSuccess(created);
       onClose();
-    }, 400);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not post the report. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -309,8 +341,8 @@ export default function ReportItemModal({
 
             <div className="flex flex-col sm:flex-row gap-2">
               <label className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-300 hover:border-blue-500 rounded-xl cursor-pointer text-xs font-semibold text-gray-600 hover:text-blue-600 transition">
-                <Camera className="w-4 h-4" />
-                <span>Upload from Device</span>
+                {uploading > 0 ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                <span>{uploading > 0 ? `Uploading ${uploading} photo${uploading > 1 ? 's' : ''}…` : 'Upload from Device'}</span>
                 <input
                   type="file"
                   multiple

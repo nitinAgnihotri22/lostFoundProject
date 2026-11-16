@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Claim } from '@/types';
 import { getRejectionReason, REJECTION_REASONS } from '@/lib/claims';
-import { CheckCircle2, XCircle, Phone, Mail, Clock, HelpCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Phone, Mail, Clock, HelpCircle, MessageCircle } from 'lucide-react';
 
 const OTHER = '__other__';
 
@@ -13,10 +13,12 @@ interface ClaimReviewCardProps {
   showItemTitle?: boolean;
   /** `reason` is required when rejecting. */
   onUpdate: (claimId: string, status: 'approved' | 'rejected', reason?: string) => void;
+  /** Open an in-app chat with the claimant. */
+  onMessage?: (claim: Claim) => void;
 }
 
 /** One claim with its 3 proofs and approve/reject actions – visible only to the item's poster. */
-export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate }: ClaimReviewCardProps) {
+export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate, onMessage }: ClaimReviewCardProps) {
   const [rejecting, setRejecting] = useState(false);
   const [preset, setPreset] = useState<string>('');
   const [customReason, setCustomReason] = useState('');
@@ -105,6 +107,16 @@ export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate 
             </span>
           </div>
         </div>
+      )}
+
+      {onMessage && (
+        <button
+          type="button"
+          onClick={() => onMessage(claim)}
+          className="text-xs font-bold text-blue-700 hover:underline flex items-center gap-1.5"
+        >
+          <MessageCircle className="w-4 h-4" /> Message {claim.claimantName.split(' ')[0]} about this claim
+        </button>
       )}
 
       {/* Rejection reason shown to both poster and claimant */}

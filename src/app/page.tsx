@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Item, ItemType, Category, User, FilterState, GeoLocation } from '@/types';
-import { getStoredItems, getStoredUser, setStoredUser, filterItems, getStoredClaims } from '@/lib/itemService';
-import { ALREADY_CLAIMED_ERROR, findUserClaim } from '@/lib/claims';
-import { Claim } from '@/types';
+import { getStoredUser, setStoredUser, filterItems } from '@/lib/itemService';
+import { ALREADY_CLAIMED_ERROR } from '@/lib/claims';
+import { api, UNAUTHORIZED_EVENT } from '@/lib/api';
+import ChatPanel from '@/components/ChatPanel';
 import { getCurrentPosition, reverseGeocode, searchAddress, AddressSearchResult } from '@/lib/geo';
 import Navbar from '@/components/Navbar';
 import ItemCard from '@/components/ItemCard';
@@ -40,7 +41,12 @@ const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: f
 export default function HomePage() {
   const [items, setItems] = useState<Item[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [claims, setClaims] = useState<Claim[]>([]);
+  const [itemsError, setItemsError] = useState<string | null>(null);
+
+  // In-app messaging
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatConversationId, setChatConversationId] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Active Modals
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
@@ -83,6 +89,17 @@ export default function HomePage() {
   // ---------------------------------------------------------------
   const processedGoogleToken = useRef<string | null>(null);
 
+  // Items come from the API (Supabase). The server already leaves out the
+  // signed-in user's own posts; `visibleItems` below double-checks client-side.
+  const loadItems = useCallback(async (silent = false) => {
+    try {
+      setItems(await api.items.list({ silent }));
+      setItemsError(null);
+    } catch (e) {
+      setItemsError(e instanceof Error ? e.message : 'Could not load items.');
+    }
+  }, []);
+
   useEffect(() => {
     let active = true;
 
@@ -104,6 +121,7 @@ export default function HomePage() {
         setStoredUser(user);
         setCurrentUser(user);
         setShowAuthModal(false);
+        loadItems(true);
       } catch (e) {
         console.error('Google sign-in failed:', e);
         alert('Google sign-in failed. Please try again.');
@@ -128,13 +146,51 @@ export default function HomePage() {
       active = false;
       sub.subscription.unsubscribe();
     };
+  }, [loadItems]);
+
+  // A protected API call came back 401 (token expired after 24h, or revoked):
+  // sign the user out locally and ask them to sign in again.
+  useEffect(() => {
+    const onUnauthorized = () => {
+      setStoredUser(null);
+      setCurrentUser(null);
+      setAuthPromptMessage('Your session has expired. Please sign in again to continue.');
+      setShowAuthModal(true);
+    };
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
   }, []);
+
+  // Unread-message badge: poll quietly while signed in.
+  useEffect(() => {
+    if (!currentUser) {
+      setUnreadCount(0);
+      return;
+    }
+    let active = true;
+    const poll = () =>
+      api.chat
+        .conversations(true)
+        .then((r) => active && setUnreadCount(r.unreadTotal))
+        .catch(() => {}); // messaging unavailable (e.g. migration not run) – badge just stays hidden
+    poll();
+    const timer = setInterval(poll, 30_000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [currentUser]);
 
   // Load Initial Data & Auto-detect User's Current GPS Location
   useEffect(() => {
-    setItems(getStoredItems());
     setCurrentUser(getStoredUser());
-    setClaims(getStoredClaims());
+    loadItems();
+
+    // Shared link: /?item=<id> opens that item straight away.
+    const deepLinkId = new URLSearchParams(window.location.search).get('item');
+    if (deepLinkId) {
+      api.items.get(deepLinkId, true).then((d) => setSelectedItem(d)).catch(() => {});
+    }
 
     // Automatically detect user's current location to deliver location-specific results
     let isMounted = true;
@@ -161,7 +217,7 @@ export default function HomePage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [loadItems]);
 
   // Debounced search for address in filter bar
   useEffect(() => {
@@ -245,8 +301,9 @@ export default function HomePage() {
   };
 
   const handleItemCreated = (newItem: Item) => {
-    setItems((prev) => [newItem, ...prev]);
+    // The new post is shown once as confirmation; it lives under /profile from now on.
     setSelectedItem(newItem);
+    loadItems(true);
   };
 
   const handleLogout = async () => {
@@ -255,6 +312,13 @@ export default function HomePage() {
     setStoredUser(null);
     setCurrentUser(null);
     setShowLogoutModal(false);
+    setChatOpen(false);
+    loadItems(true);
+  };
+
+  const openChat = (conversationId: string | null = null) => {
+    setChatConversationId(conversationId);
+    setChatOpen(true);
   };
 
   // User-specific actions requiring login
@@ -283,8 +347,12 @@ export default function HomePage() {
       alert(OWN_ITEM_CLAIM_ERROR);
       return;
     }
-    if (findUserClaim(claims, item.id, currentUser)) {
+    if (item.myClaim) {
       alert(ALREADY_CLAIMED_ERROR);
+      return;
+    }
+    if (item.status !== 'active') {
+      alert('This item is no longer open for claims.');
       return;
     }
     setClaimTargetItem(item);
@@ -292,6 +360,7 @@ export default function HomePage() {
 
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
+    loadItems(true);
     // Automatically resume pending action if user tried to do something before login
     if (pendingAction) {
       if (pendingAction.type === 'report') {
@@ -299,9 +368,8 @@ export default function HomePage() {
       } else if (pendingAction.type === 'claim') {
         if (isOwnItem(pendingAction.item, user)) {
           alert(OWN_ITEM_CLAIM_ERROR);
-        } else if (findUserClaim(claims, pendingAction.item.id, user)) {
-          alert(ALREADY_CLAIMED_ERROR);
         } else {
+          // The API re-checks for duplicate claims, so a stale copy here is safe.
           setClaimTargetItem(pendingAction.item);
         }
       }
@@ -321,7 +389,16 @@ export default function HomePage() {
         }}
         onLogout={() => setShowLogoutModal(true)}
         onOpenReport={handleOpenReport}
+        unreadCount={unreadCount}
+        onOpenMessages={() => openChat(null)}
       />
+
+      {itemsError && (
+        <div className="bg-red-50 border-b border-red-100 text-center text-xs font-semibold text-red-800 px-4 py-2">
+          {itemsError}{' '}
+          <button onClick={() => loadItems()} className="underline font-bold">Retry</button>
+        </div>
+      )}
 
       {/* Hero & Filter Panel */}
       <section className="bg-white border-b border-gray-200/80 shadow-xs">
@@ -614,7 +691,7 @@ export default function HomePage() {
                   onSelect={(i) => setSelectedItem(i)}
                   onClaimClick={(i) => handleOpenClaim(i)}
                   isOwner={isOwnItem(item, currentUser)}
-                  myClaim={findUserClaim(claims, item.id, currentUser)}
+                  myClaim={item.myClaim}
                 />
               ))}
             </div>
@@ -648,7 +725,7 @@ export default function HomePage() {
                 onSelect={(i) => setSelectedItem(i)}
                 onClaimClick={(i) => handleOpenClaim(i)}
                 isOwner={isOwnItem(item, currentUser)}
-                myClaim={findUserClaim(claims, item.id, currentUser)}
+                myClaim={item.myClaim}
               />
             ))}
           </div>
@@ -687,12 +764,17 @@ export default function HomePage() {
         <ItemDetailModal
           key={selectedItem.id}
           item={selectedItem}
-          isOwner={isOwnItem(selectedItem, currentUser)}
           currentUser={currentUser}
           onClose={() => setSelectedItem(null)}
           onClaim={(item) => {
             setSelectedItem(null);
             handleOpenClaim(item);
+          }}
+          onChanged={() => loadItems(true)}
+          onMessage={(conversationId) => openChat(conversationId)}
+          onRequireLogin={(message) => {
+            setAuthPromptMessage(message);
+            setShowAuthModal(true);
           }}
         />
       )}
@@ -704,8 +786,7 @@ export default function HomePage() {
           currentUser={currentUser}
           onClose={() => setClaimTargetItem(null)}
           onSuccess={() => {
-            setClaims(getStoredClaims());
-            alert('Your claim has been submitted to the finder with all 3 verification proofs!');
+            loadItems(true);
           }}
         />
       )}
@@ -738,6 +819,18 @@ export default function HomePage() {
         userName={currentUser?.name}
         onCancel={() => setShowLogoutModal(false)}
         onConfirm={handleLogout}
+      />
+
+      <ChatPanel
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+        currentUser={currentUser}
+        initialConversationId={chatConversationId}
+        onUnreadChange={setUnreadCount}
+        onOpenItem={(itemId) => {
+          setChatOpen(false);
+          api.items.get(itemId).then((d) => setSelectedItem(d)).catch((e) => alert(e.message));
+        }}
       />
 
       {/* Overlay shown while any API call is in flight */}

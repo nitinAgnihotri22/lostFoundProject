@@ -1,26 +1,39 @@
+// GET  /api/claims – the caller's claims (`mine`) and claims on the caller's items (`received`).
+// POST /api/claims – submit a 3-proof claim on a found item.
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllDbClaims, getAllDbItems, insertDbClaim } from '@/lib/db';
-import { requireAuth } from '@/lib/session';
-import { isOwnItem, OWN_ITEM_CLAIM_ERROR } from '@/lib/ownership';
+import { getItem, insertClaim, listClaimsByClaimant, listClaimsForItems, listItems } from '@/lib/db';
+import { fail, requireAuth } from '@/lib/session';
+import { readJson, routeError, toSummaries } from '@/lib/itemView';
+import { LIMITS, requireText, str } from '@/lib/validation';
 import { ALREADY_CLAIMED_ERROR, findUserClaim } from '@/lib/claims';
+import { OWN_ITEM_CLAIM_ERROR } from '@/lib/ownership';
+import { ClaimWithItem } from '@/types';
 
-// Returns only claims the caller made, or claims on items the caller reported.
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
   if (auth.response) return auth.response;
   const { user } = auth;
 
   try {
-    const [allClaims, items] = await Promise.all([getAllDbClaims(), getAllDbItems()]);
-    const myItemIds = new Set(items.filter((i) => i.userId === user.id).map((i) => i.id));
-    const claims = allClaims.filter((c) => c.claimantId === user.id || myItemIds.has(c.itemId));
+    const scope = request.nextUrl.searchParams.get('scope') ?? 'all';
+    const myItems = scope === 'mine' ? [] : await listItems({ status: 'all', userId: user.id });
+    const [mine, received] = await Promise.all([
+      scope === 'received' ? [] : listClaimsByClaimant(user.id),
+      scope === 'mine' ? [] : listClaimsForItems(myItems.map((i) => i.id)),
+    ]);
+
+    // Attach a small item summary to each claim so the UI can render it without extra calls.
+    const mineItems = await Promise.all(Array.from(new Set(mine.map((c) => c.itemId))).map((id) => getItem(id)));
+    const summaries = await toSummaries([...myItems, ...mineItems.filter((i): i is NonNullable<typeof i> => !!i)]);
+    const attach = (c: (typeof mine)[number]): ClaimWithItem => ({ ...c, item: summaries.get(c.itemId) });
+
     return NextResponse.json({
       success: true,
-      count: claims.length,
-      data: claims,
+      data: { mine: mine.map(attach), received: received.map(attach) },
+      count: { mine: mine.length, received: received.length },
     });
-  } catch (error) {
-    return NextResponse.json({ success: false, error: 'Failed to retrieve claims' }, { status: 500 });
+  } catch (e) {
+    return routeError(e, 'claims GET');
   }
 }
 
@@ -29,59 +42,41 @@ export async function POST(request: NextRequest) {
   if (auth.response) return auth.response;
   const { user } = auth;
 
-  let body: any;
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ success: false, error: 'Invalid JSON request' }, { status: 400 });
-  }
-  try {
+    const body = await readJson(request);
+    const itemId = str(body.itemId);
+    if (!itemId) return fail(400, 'itemId is required.');
+    const proof1 = requireText(body.proof1, 'Proof 1', 1, LIMITS.proofMax);
+    const proof2 = requireText(body.proof2, 'Proof 2', 1, LIMITS.proofMax);
+    const proof3 = requireText(body.proof3, 'Proof 3', 1, LIMITS.proofMax);
+    const phone = str(body.phone || body.claimantPhone).slice(0, 40) || user.phone || '';
 
-    if (!body.itemId || !body.proof1 || !body.proof2 || !body.proof3) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Missing required 3 verification proofs (proof1, proof2, proof3) or itemId.',
-        },
-        { status: 400 }
-      );
+    const item = await getItem(itemId);
+    if (!item) return fail(404, 'Item not found.');
+    if (item.type !== 'found') {
+      return fail(400, 'Only found items can be claimed. If you found a lost item, message its owner instead.', { code: 'NOT_CLAIMABLE' });
     }
+    if (item.status !== 'active') {
+      return fail(409, item.status === 'claimed' ? 'This item has already been claimed and approved.' : 'This report has been closed by the poster.', { code: 'ITEM_CLOSED' });
+    }
+    if (item.userId === user.id) return fail(403, OWN_ITEM_CLAIM_ERROR, { code: 'OWN_ITEM' });
 
-    const item = (await getAllDbItems()).find((i) => i.id === String(body.itemId));
-    if (!item) {
-      return NextResponse.json({ success: false, error: 'Item not found.' }, { status: 404 });
-    }
-    if (isOwnItem(item, user)) {
-      return NextResponse.json(
-        { success: false, error: OWN_ITEM_CLAIM_ERROR, code: 'OWN_ITEM' },
-        { status: 403 }
-      );
-    }
-    const existing = findUserClaim(await getAllDbClaims(), item.id, user);
-    if (existing) {
-      return NextResponse.json(
-        { success: false, error: ALREADY_CLAIMED_ERROR, code: 'ALREADY_CLAIMED', data: existing },
-        { status: 409 }
-      );
-    }
+    const existing = findUserClaim(await listClaimsByClaimant(user.id), item.id, user);
+    if (existing) return fail(409, ALREADY_CLAIMED_ERROR, { code: 'ALREADY_CLAIMED', data: existing });
 
-    // Claimant details come from the authenticated user, not the request body.
-    const newClaim = await insertDbClaim({
+    const claim = await insertClaim({
       itemId: item.id,
       itemTitle: item.title,
+      // Claimant details come from the authenticated user, not the request body.
       claimantId: user.id,
       claimantName: user.name,
       claimantEmail: user.email,
-      claimantPhone: body.phone || body.claimantPhone || user.phone || '',
-      proof1: body.proof1,
-      proof2: body.proof2,
-      proof3: body.proof3,
+      claimantPhone: phone,
+      proof1, proof2, proof3,
     });
-
-    return NextResponse.json({ success: true, data: newClaim }, { status: 201 });
-  } catch (error) {
-    console.error('[claims POST]', error);
-    return NextResponse.json({ success: false, error: 'Failed to submit claim.' }, { status: 500 });
+    return NextResponse.json({ success: true, data: claim }, { status: 201 });
+  } catch (e: any) {
+    if (e?.code === '23505') return fail(409, ALREADY_CLAIMED_ERROR, { code: 'ALREADY_CLAIMED' });
+    return routeError(e, 'claims POST');
   }
 }
-

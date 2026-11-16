@@ -3,13 +3,15 @@
 import React from 'react';
 import Link from 'next/link';
 import { User, ItemType } from '@/types';
-import { Search, Plus, MapPin, Compass, LogOut, User as UserIcon } from 'lucide-react';
+import { Plus, Compass, LogOut, MessageCircle } from 'lucide-react';
 
 interface NavbarProps {
   currentUser: User | null;
   onOpenAuth: () => void;
   onLogout: () => void;
   onOpenReport: (type: ItemType) => void;
+  unreadCount?: number;
+  onOpenMessages?: () => void;
 }
 
 export default function Navbar({
@@ -17,6 +19,8 @@ export default function Navbar({
   onOpenAuth,
   onLogout,
   onOpenReport,
+  unreadCount = 0,
+  onOpenMessages,
 }: NavbarProps) {
   return (
     <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-xs">
@@ -55,6 +59,21 @@ export default function Navbar({
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Report</span> Lost Item
           </button>
+
+          {/* Messages */}
+          {currentUser && onOpenMessages && (
+            <button
+              onClick={onOpenMessages}
+              title="Messages"
+              className="relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 transition"
+            >
+              <MessageCircle className="w-4 h-4 text-blue-600" />
+              <span className="hidden md:inline">Messages</span>
+              {unreadCount > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{unreadCount}</span>
+              )}
+            </button>
+          )}
 
           {/* User Profile / Auth */}
           <div className="pl-2 border-l border-gray-200 flex items-center gap-2">

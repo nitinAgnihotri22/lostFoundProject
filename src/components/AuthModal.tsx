@@ -97,7 +97,7 @@ export default function AuthModal({
   const handleSendOtp = (e: React.FormEvent) => {
     e.preventDefault();
     if (!phoneNumber.trim() || phoneNumber.length < 8) {
-      alert('Please enter a valid phone number with area/country code.');
+      alert('Please enter a valid phone number with area/country code');
       return;
     }
     setIsSendingOtp(true);

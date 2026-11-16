@@ -29,7 +29,7 @@ export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate,
   const submitRejection = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reason) {
-      setError('Please choose or write a reason so the claimant knows why.');
+      setError('Please choose or write a reason so the claimant knows why');
       return;
     }
     onUpdate(claim.id, 'rejected', reason);

@@ -2,8 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { GeoLocation } from '@/types';
-import { fetchNearbyCities, searchPlaces, NearbyCity, PlaceResult } from '@/lib/geo';
-import { MapPin, ChevronDown, Navigation, Search, Loader2, Globe, X, Building2 } from 'lucide-react';
+import { searchPlaces, PlaceResult } from '@/lib/geo';
+import { MapPin, ChevronDown, Navigation, Search, Loader2, Globe, X } from 'lucide-react';
 
 interface LocationPickerProps {
   /** Current search center; null = no location filter (all items). */
@@ -11,8 +11,6 @@ interface LocationPickerProps {
   /** True when `value` is the device's own GPS position. */
   isCurrentLocation: boolean;
   isLocating: boolean;
-  /** Where to look for nearby cities: the device position if known, else the selected place. */
-  nearbyAnchor: { lat: number; lng: number } | null;
   onUseCurrentLocation: () => void;
   onSelect: (location: GeoLocation) => void;
   onShowAll: () => void;
@@ -22,7 +20,6 @@ export default function LocationPicker({
   value,
   isCurrentLocation,
   isLocating,
-  nearbyAnchor,
   onUseCurrentLocation,
   onSelect,
   onShowAll,
@@ -31,8 +28,6 @@ export default function LocationPicker({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PlaceResult[]>([]);
   const [searching, setSearching] = useState(false);
-  const [nearby, setNearby] = useState<NearbyCity[]>([]);
-  const [nearbyState, setNearbyState] = useState<'idle' | 'loading' | 'error'>('idle');
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -51,25 +46,6 @@ export default function LocationPicker({
       document.removeEventListener('keydown', onKey);
     };
   }, [open]);
-
-  // Nearby cities, loaded when the panel opens.
-  const anchorLat = nearbyAnchor?.lat;
-  const anchorLng = nearbyAnchor?.lng;
-  useEffect(() => {
-    if (!open || anchorLat === undefined || anchorLng === undefined) return;
-    let active = true;
-    setNearbyState('loading');
-    fetchNearbyCities(anchorLat, anchorLng)
-      .then((cities) => {
-        if (!active) return;
-        setNearby(cities);
-        setNearbyState('idle');
-      })
-      .catch(() => active && setNearbyState('error'));
-    return () => {
-      active = false;
-    };
-  }, [open, anchorLat, anchorLng]);
 
   // Debounced worldwide search.
   useEffect(() => {
@@ -193,36 +169,6 @@ export default function LocationPicker({
                     }}
                   />
                 </div>
-
-                {nearbyAnchor && (
-                  <div className="border-t border-gray-100 py-1">
-                    <p className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Nearby cities</p>
-                    {nearbyState === 'loading' ? (
-                      <div className="flex items-center gap-2 px-4 py-3 text-xs text-gray-500">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Finding cities near you…
-                      </div>
-                    ) : nearbyState === 'error' ? (
-                      <p className="px-4 py-3 text-xs text-gray-500">Couldn’t load nearby cities. Search above instead.</p>
-                    ) : nearby.length === 0 ? (
-                      <p className="px-4 py-3 text-xs text-gray-500">No cities found nearby. Search above instead.</p>
-                    ) : (
-                      <ul>
-                        {nearby.map((c) => (
-                          <li key={c.id}>
-                            <PlaceRow
-                              icon={<Building2 className="w-4 h-4 text-gray-500" />}
-                              title={c.city}
-                              subtitle={c.subtitle}
-                              trailing={c.distanceKm < 1 ? '< 1 km' : `${Math.round(c.distanceKm)} km`}
-                              highlight={!!value && Math.abs(value.lat - c.lat) < 1e-4 && Math.abs(value.lng - c.lng) < 1e-4}
-                              onClick={() => choose(c)}
-                            />
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
               </>
             )}
           </div>
@@ -236,14 +182,12 @@ function PlaceRow({
   icon,
   title,
   subtitle,
-  trailing,
   highlight,
   onClick,
 }: {
   icon: React.ReactNode;
   title: string;
   subtitle?: string;
-  trailing?: string;
   highlight?: boolean;
   onClick: () => void;
 }) {
@@ -258,7 +202,6 @@ function PlaceRow({
         <span className="block text-sm font-semibold text-gray-900 truncate">{title}</span>
         {subtitle && <span className="block text-xs text-gray-500 truncate">{subtitle}</span>}
       </span>
-      {trailing && <span className="text-xs font-semibold text-gray-500 shrink-0">{trailing}</span>}
     </button>
   );
 }

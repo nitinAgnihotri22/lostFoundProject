@@ -67,7 +67,6 @@ export default function HomePage() {
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedType, setSelectedType] = useState<ItemType | 'all'>('found'); // Default to found items list as requested
   const [radiusKm, setRadiusKm] = useState<number>(5); // Default 5km radius
   const [centerLocation, setCenterLocation] = useState<GeoLocation | null>(null);
   // Hold the item list back until the first location lookup settles, so the
@@ -77,8 +76,6 @@ export default function HomePage() {
   const [gpsPosition, setGpsPosition] = useState<GeoLocation | null>(null);
   const [isCurrentLocation, setIsCurrentLocation] = useState(false);
 
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
   const [isLocatingUser, setIsLocatingUser] = useState(true);
 
   // ---------------------------------------------------------------
@@ -236,12 +233,11 @@ export default function HomePage() {
   const filterState: FilterState = useMemo(() => ({
     searchQuery,
     category: selectedCategory,
-    type: selectedType,
+    // The website only lists found items (lost reports aren't offered here).
+    type: 'found',
     radiusKm,
     centerLocation,
-    startDate: startDate ? new Date(startDate).toISOString() : undefined,
-    endDate: endDate ? new Date(endDate).toISOString() : undefined,
-  }), [searchQuery, selectedCategory, selectedType, radiusKm, centerLocation, startDate, endDate]);
+  }), [searchQuery, selectedCategory, radiusKm, centerLocation]);
 
   // Home screen hides the logged-in user's own posts – they live under /profile.
   const visibleItems = useMemo(
@@ -249,21 +245,7 @@ export default function HomePage() {
     [items, currentUser]
   );
 
-  // Every active filter except the Found/Lost tab – the tab counts come from this.
-  const itemsMatchingFiltersAllTypes = useMemo(
-    () => filterItems(visibleItems, { ...filterState, type: 'all' }),
-    [visibleItems, filterState]
-  );
-  const foundCount = itemsMatchingFiltersAllTypes.filter((i) => i.type === 'found').length;
-  const lostCount = itemsMatchingFiltersAllTypes.filter((i) => i.type === 'lost').length;
-
-  const filteredItems = useMemo(
-    () =>
-      selectedType === 'all'
-        ? itemsMatchingFiltersAllTypes
-        : itemsMatchingFiltersAllTypes.filter((i) => i.type === selectedType),
-    [itemsMatchingFiltersAllTypes, selectedType]
-  );
+  const filteredItems = useMemo(() => filterItems(visibleItems, filterState), [visibleItems, filterState]);
 
   // Handle GPS Center Location
   const handleUseMyGPS = async () => {
@@ -284,10 +266,7 @@ export default function HomePage() {
   const handleResetFilters = () => {
     setSearchQuery('');
     setSelectedCategory('all');
-    setSelectedType('found');
     setRadiusKm(5);
-    setStartDate('');
-    setEndDate('');
     // Back to the default: the user's current location if we have it, else everywhere.
     setCenterLocation(gpsPosition);
     setIsCurrentLocation(!!gpsPosition);
@@ -389,7 +368,6 @@ export default function HomePage() {
             value={centerLocation}
             isCurrentLocation={isCurrentLocation}
             isLocating={isLocatingUser}
-            nearbyAnchor={gpsPosition ?? centerLocation}
             onUseCurrentLocation={handleUseMyGPS}
             onSelect={handleSelectLocation}
             onShowAll={handleShowAllLocations}
@@ -421,7 +399,7 @@ export default function HomePage() {
             <div className="flex items-center gap-3 bg-blue-50/70 border border-blue-100 px-4 py-2 rounded-2xl">
               <div className="flex items-center gap-2 text-xs font-semibold text-blue-900">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>{initialLocationResolved ? foundCount : '–'} Found Items</span>
+                <span>{initialLocationResolved ? filteredItems.length : '–'} Found Items</span>
               </div>
               <div className="h-4 w-px bg-blue-200"></div>
               <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-900">
@@ -432,7 +410,7 @@ export default function HomePage() {
           </div>
 
           {/* Primary Filter Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* 1. Search Query */}
             <div className="relative">
               <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -466,8 +444,9 @@ export default function HomePage() {
               </select>
             </div>
 
-            {/* 3. Search Radius (location is chosen from the picker in the navbar) */}
-            <div className="relative">
+            {/* 3. Search Radius (location is chosen from the picker in the navbar) + Reset */}
+            <div className="flex items-center gap-2">
+            <div className="relative flex-1">
               <MapPin className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <select
                 value={radiusKm}
@@ -485,18 +464,6 @@ export default function HomePage() {
                 )}
               </select>
             </div>
-
-            {/* 4. Date Range Filter */}
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  title="Lost/Found on or after this date"
-                  className="w-full py-2 px-2.5 bg-gray-50 hover:bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
               <button
                 onClick={handleResetFilters}
                 title="Reset all filters"
@@ -525,44 +492,10 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Subheader: Type Tabs + View Switcher */}
-          <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-gray-100 pt-4">
-            {/* Type Filter Tabs */}
-            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl w-full sm:w-auto">
-              <button
-                onClick={() => setSelectedType('found')}
-                className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition ${
-                  selectedType === 'found'
-                    ? 'bg-emerald-600 text-white shadow'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Found Items ({initialLocationResolved ? foundCount : '–'})
-              </button>
-              <button
-                onClick={() => setSelectedType('lost')}
-                className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition ${
-                  selectedType === 'lost'
-                    ? 'bg-amber-500 text-white shadow'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Lost Items ({initialLocationResolved ? lostCount : '–'})
-              </button>
-              <button
-                onClick={() => setSelectedType('all')}
-                className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition ${
-                  selectedType === 'all'
-                    ? 'bg-gray-800 text-white shadow'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                All Reports ({initialLocationResolved ? foundCount + lostCount : '–'})
-              </button>
-            </div>
-
+          {/* Subheader: View Switcher */}
+          <div className="mt-6 flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
             {/* View Mode Buttons (Split / Grid / Map) */}
-            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl self-end">
+            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
               <button
                 onClick={() => setViewMode('split')}
                 title="Split Map & Grid"

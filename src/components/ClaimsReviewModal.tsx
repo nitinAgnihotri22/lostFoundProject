@@ -4,6 +4,7 @@ import React from 'react';
 import { Claim } from '@/types';
 import { X, ShieldCheck } from 'lucide-react';
 import ClaimReviewCard from './ClaimReviewCard';
+import { useI18n } from '@/i18n/LanguageProvider';
 
 interface ClaimsReviewModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export default function ClaimsReviewModal({
   onUpdate,
   onMessage,
 }: ClaimsReviewModalProps) {
+  const { t } = useI18n();
   if (!isOpen) return null;
 
   const handleUpdate = (claimId: string, status: 'approved' | 'rejected', reason?: string) => {
@@ -30,7 +32,7 @@ export default function ClaimsReviewModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col border border-gray-100">
+      <div role="dialog" aria-modal="true" aria-labelledby="inbox-title" className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col border border-gray-100">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
           <div className="flex items-center gap-2">
@@ -38,12 +40,13 @@ export default function ClaimsReviewModal({
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-900 text-base">Claim Verification Inbox</h3>
-              <p className="text-xs text-gray-500">Review 3 private proofs submitted by owners</p>
+              <h2 id="inbox-title" className="font-bold text-gray-900 text-base">{t('review.inboxTitle')}</h2>
+              <p className="text-xs text-gray-500">{t('review.inboxSubtitle')}</p>
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label={t('common.close')}
             className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition"
           >
             <X className="w-5 h-5" />
@@ -57,9 +60,9 @@ export default function ClaimsReviewModal({
               <div className="w-14 h-14 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
                 <ShieldCheck className="w-8 h-8" />
               </div>
-              <h4 className="text-sm font-bold text-gray-800">No Claim Submissions Yet</h4>
+              <h3 className="text-sm font-bold text-gray-800">{t('review.inboxEmpty')}</h3>
               <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
-                When a user submits 3 secret proofs to claim an item you reported, it will appear here for verification.
+                {t('review.inboxEmptyBody')}
               </p>
             </div>
           ) : (
@@ -75,7 +78,7 @@ export default function ClaimsReviewModal({
             onClick={onClose}
             className="px-5 py-2 bg-gray-800 hover:bg-black text-white text-xs font-bold rounded-xl transition"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
       </div>

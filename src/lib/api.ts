@@ -38,7 +38,7 @@ async function request<T = any>(path: string, opts: Opts = {}): Promise<T> {
     }
     return json as T;
   };
-  return silent ? run() : trackRequest(run, loadingMessage ?? 'Please wait…');
+  return silent ? run() : trackRequest(run, loadingMessage ?? 'loading.default');
 }
 
 const json = (body: unknown) => JSON.stringify(body);
@@ -60,16 +60,16 @@ export const api = {
   items: {
     /** Active items for the home screen. The caller's own posts are excluded when signed in. */
     list: async (opts: { silent?: boolean } = {}): Promise<Item[]> =>
-      (await request('/api/items?excludeMine=1', { silent: opts.silent, loadingMessage: 'Loading nearby items…' })).data,
-    mine: async (): Promise<Item[]> => (await request('/api/items?mine=1', { loadingMessage: 'Loading your items…' })).data,
+      (await request('/api/items?excludeMine=1', { silent: opts.silent, loadingMessage: 'loading.items' })).data,
+    mine: async (): Promise<Item[]> => (await request('/api/items?mine=1', { loadingMessage: 'loading.myItems' })).data,
     get: async (id: string, silent = true): Promise<ItemDetail> =>
-      (await request(`/api/items/${encodeURIComponent(id)}`, { silent, loadingMessage: 'Loading item…' })).data,
+      (await request(`/api/items/${encodeURIComponent(id)}`, { silent, loadingMessage: 'loading.item' })).data,
     create: async (input: CreateItemInput): Promise<Item> =>
-      (await request('/api/items', { method: 'POST', body: json(input), loadingMessage: 'Posting your report…' })).data,
+      (await request('/api/items', { method: 'POST', body: json(input), loadingMessage: 'loading.posting' })).data,
     setStatus: async (id: string, status: 'resolved' | 'active'): Promise<Item> =>
-      (await request(`/api/items/${encodeURIComponent(id)}`, { method: 'PATCH', body: json({ status }), loadingMessage: 'Updating item…' })).data,
+      (await request(`/api/items/${encodeURIComponent(id)}`, { method: 'PATCH', body: json({ status }), loadingMessage: 'loading.updatingItem' })).data,
     remove: async (id: string): Promise<void> => {
-      await request(`/api/items/${encodeURIComponent(id)}`, { method: 'DELETE', loadingMessage: 'Deleting item…' });
+      await request(`/api/items/${encodeURIComponent(id)}`, { method: 'DELETE', loadingMessage: 'loading.deletingItem' });
     },
   },
 
@@ -77,20 +77,20 @@ export const api = {
     photo: async (file: File): Promise<string> => {
       const form = new FormData();
       form.append('file', file);
-      return (await request('/api/uploads', { method: 'POST', body: form, loadingMessage: `Uploading ${file.name}…` })).data.url;
+      return (await request('/api/uploads', { method: 'POST', body: form, loadingMessage: 'loading.uploading' })).data.url;
     },
   },
 
   claims: {
     list: async (): Promise<{ mine: ClaimWithItem[]; received: ClaimWithItem[] }> =>
-      (await request('/api/claims', { loadingMessage: 'Loading claims…' })).data,
+      (await request('/api/claims', { loadingMessage: 'loading.claims' })).data,
     create: async (input: { itemId: string; proof1: string; proof2: string; proof3: string; phone?: string }): Promise<Claim> =>
-      (await request('/api/claims', { method: 'POST', body: json(input), loadingMessage: 'Submitting your claim…' })).data,
+      (await request('/api/claims', { method: 'POST', body: json(input), loadingMessage: 'loading.submittingClaim' })).data,
     review: async (id: string, status: 'approved' | 'rejected', reason?: string): Promise<{ claim: Claim; autoRejected: number }> => {
       const res = await request(`/api/claims/${encodeURIComponent(id)}`, {
         method: 'PATCH',
         body: json({ status, reason }),
-        loadingMessage: status === 'approved' ? 'Approving claim…' : 'Rejecting claim…',
+        loadingMessage: status === 'approved' ? 'loading.approving' : 'loading.rejecting',
       });
       return { claim: res.data, autoRejected: res.autoRejected ?? 0 };
     },
@@ -98,9 +98,9 @@ export const api = {
 
   chat: {
     conversations: async (silent = false): Promise<{ data: Conversation[]; unreadTotal: number }> =>
-      request('/api/conversations', { silent, loadingMessage: 'Loading messages…' }),
+      request('/api/conversations', { silent, loadingMessage: 'loading.messages' }),
     start: async (input: { itemId: string; recipientId?: string; message?: string }): Promise<Conversation> =>
-      (await request('/api/conversations', { method: 'POST', body: json(input), loadingMessage: 'Opening chat…' })).data,
+      (await request('/api/conversations', { method: 'POST', body: json(input), loadingMessage: 'loading.openingChat' })).data,
     messages: async (conversationId: string, after?: string, silent = true): Promise<{ conversation: Conversation; messages: Message[] }> =>
       (await request(`/api/conversations/${encodeURIComponent(conversationId)}/messages${after ? `?after=${encodeURIComponent(after)}` : ''}`, { silent })).data,
     send: async (conversationId: string, body: string): Promise<Message> =>
@@ -109,6 +109,22 @@ export const api = {
 
   profile: {
     get: async (silent = false): Promise<ProfileData> =>
-      (await request('/api/profile', { silent, loadingMessage: 'Loading your profile…' })).data,
+      (await request('/api/profile', { silent, loadingMessage: 'loading.profile' })).data,
+  },
+
+  contact: {
+    /** Contact Us form. `website` is the honeypot field and must stay empty. */
+    send: async (input: ContactInput): Promise<{ reference: string }> =>
+      (await request('/api/contact', { method: 'POST', body: json(input), loadingMessage: 'loading.sendingMessage' })).data,
   },
 };
+
+export interface ContactInput {
+  name: string;
+  email: string;
+  phone?: string;
+  subject: string;
+  message: string;
+  consent: boolean;
+  website?: string;
+}

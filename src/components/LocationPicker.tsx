@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GeoLocation } from '@/types';
 import { searchPlaces, PlaceResult } from '@/lib/geo';
 import { MapPin, ChevronDown, Navigation, Search, Loader2, Globe, X } from 'lucide-react';
+import { useI18n } from '@/i18n/LanguageProvider';
 
 interface LocationPickerProps {
   /** Current search center; null = no location filter (all items). */
@@ -24,6 +25,7 @@ export default function LocationPicker({
   onSelect,
   onShowAll,
 }: LocationPickerProps) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PlaceResult[]>([]);
@@ -75,8 +77,10 @@ export default function LocationPicker({
     setOpen(false);
   };
 
-  const caption = isLocating && !value ? 'Detecting location…' : isCurrentLocation ? 'Current location' : value ? 'Showing items near' : 'Location';
-  const label = isLocating && !value ? 'Please wait' : value ? value.city || value.address : 'All locations';
+  const caption = isLocating && !value ? t('location.detecting') : isCurrentLocation ? t('location.current') : value ? t('location.showingNear') : t('location.location');
+  // Before the place name resolves, the address is a placeholder in whichever language was active.
+  const placeName = value ? (value.city || (value.address === 'Your current location' ? t('location.yourCurrentLocation') : value.address)) : '';
+  const label = isLocating && !value ? t('location.pleaseWait') : value ? placeName : t('location.allLocations');
 
   return (
     <div ref={rootRef} className="relative min-w-0">
@@ -84,6 +88,8 @@ export default function LocationPicker({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-label={`${t('location.changeLocation')}: ${caption} – ${label}`}
         className="flex items-center gap-2 min-w-0 max-w-[160px] sm:max-w-[240px] pl-2 pr-2.5 py-1.5 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-200 transition text-left"
       >
         {isLocating && !value ? (
@@ -96,7 +102,7 @@ export default function LocationPicker({
           <Globe className="w-5 h-5 text-blue-600 shrink-0" />
         )}
         <span className="min-w-0 flex flex-col">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{caption}</span>
+          <span className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-500 leading-tight">{caption}</span>
           <span className="flex items-center gap-1 text-sm font-bold text-gray-900 leading-tight min-w-0">
             <span className="truncate" title={value?.address}>{label}</span>
             <ChevronDown className={`w-3.5 h-3.5 text-gray-500 shrink-0 transition ${open ? 'rotate-180' : ''}`} />
@@ -105,7 +111,7 @@ export default function LocationPicker({
       </button>
 
       {open && (
-        <div className="fixed sm:absolute left-2 right-2 sm:left-0 sm:right-auto top-16 sm:top-full sm:mt-2 sm:w-[380px] bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
+        <div role="dialog" aria-label={t('location.changeLocation')} className="fixed sm:absolute left-2 right-2 sm:left-0 sm:right-auto top-16 sm:top-full sm:mt-2 sm:w-[380px] bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
           {/* Search */}
           <div className="p-3 border-b border-gray-100">
             <div className="relative">
@@ -114,7 +120,8 @@ export default function LocationPicker({
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search any city, area or country…"
+                placeholder={t('location.searchPlaceholder')}
+                aria-label={t('location.searchPlaceholder')}
                 className="w-full pl-9 pr-8 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               {searching ? (
@@ -124,7 +131,7 @@ export default function LocationPicker({
                   type="button"
                   onClick={() => setQuery('')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
-                  aria-label="Clear search"
+                  aria-label={t('location.clearSearch')}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -143,15 +150,15 @@ export default function LocationPicker({
                   ))}
                 </ul>
               ) : (
-                !searching && <p className="px-4 py-6 text-center text-xs text-gray-500">No places found for “{query.trim()}”.</p>
+                !searching && <p className="px-4 py-6 text-center text-xs text-gray-500">{t('location.noPlaces', { query: query.trim() })}</p>
               )
             ) : (
               <>
                 <div className="py-1">
                   <PlaceRow
                     icon={<Navigation className={`w-4 h-4 text-blue-600 ${isLocating ? 'animate-spin' : ''}`} />}
-                    title={isLocating ? 'Detecting your location…' : 'Use my current location'}
-                    subtitle="Using your device GPS"
+                    title={isLocating ? t('location.detectingYours') : t('location.useCurrent')}
+                    subtitle={t('location.usingGps')}
                     highlight={isCurrentLocation}
                     onClick={() => {
                       onUseCurrentLocation();
@@ -160,8 +167,8 @@ export default function LocationPicker({
                   />
                   <PlaceRow
                     icon={<Globe className="w-4 h-4 text-gray-500" />}
-                    title="All locations"
-                    subtitle="Show items from everywhere"
+                    title={t('location.allLocations')}
+                    subtitle={t('location.showEverywhere')}
                     highlight={!value}
                     onClick={() => {
                       onShowAll();

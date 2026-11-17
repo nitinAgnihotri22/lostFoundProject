@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { Item } from '@/types';
-import { X, Printer, MapPin, Calendar, AlertTriangle } from 'lucide-react';
+import { X, Printer, MapPin, Calendar } from 'lucide-react';
+import { useI18n } from '@/i18n/LanguageProvider';
 
 interface PrintFlyerModalProps {
   item: Item | null;
@@ -10,18 +11,14 @@ interface PrintFlyerModalProps {
 }
 
 export default function PrintFlyerModal({ item, onClose }: PrintFlyerModalProps) {
+  const { t, formatDate } = useI18n();
   if (!item) return null;
 
   const handlePrint = () => {
     window.print();
   };
 
-  const formattedDate = new Date(item.occurredAt).toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const formattedDate = formatDate(item.occurredAt, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   const photo = item.images && item.images.length > 0
     ? item.images[0]
@@ -33,11 +30,11 @@ export default function PrintFlyerModal({ item, onClose }: PrintFlyerModalProps)
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm animate-fade-in overflow-y-auto">
       {/* Controls Bar */}
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden my-auto border border-gray-200">
+      <div role="dialog" aria-modal="true" aria-labelledby="flyer-title" className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden my-auto border border-gray-200">
         <div className="flex items-center justify-between px-6 py-3.5 bg-gray-900 text-white print:hidden">
           <div className="flex items-center gap-2">
             <Printer className="w-5 h-5 text-amber-400" />
-            <span className="font-bold text-sm">Printable Lost Flyer Preview</span>
+            <h2 id="flyer-title" className="font-bold text-sm">{t('flyer.preview')}</h2>
           </div>
 
           <div className="flex items-center gap-2">
@@ -46,11 +43,12 @@ export default function PrintFlyerModal({ item, onClose }: PrintFlyerModalProps)
               className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5"
             >
               <Printer className="w-4 h-4" />
-              <span>Print Flyer</span>
+              <span>{t('flyer.print')}</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-gray-400 hover:text-white rounded-lg transition"
+              aria-label={t('flyer.close')}
+              className="p-1.5 text-gray-300 hover:text-white rounded-lg transition"
             >
               <X className="w-5 h-5" />
             </button>
@@ -61,22 +59,22 @@ export default function PrintFlyerModal({ item, onClose }: PrintFlyerModalProps)
         <div className="p-8 sm:p-10 bg-white text-gray-900 print:p-0 print:m-0" id="flyer-content">
           {/* Top Urgent Banner */}
           <div className="text-center border-b-4 border-red-600 pb-4 mb-6">
-            <h1 className="text-4xl sm:text-5xl font-black uppercase tracking-tight text-red-600">
-              HELP US FIND
-            </h1>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1 capitalize">
+            <p className="text-4xl sm:text-5xl font-black uppercase tracking-tight text-red-600">
+              {t('flyer.helpFind')}
+            </p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1 capitalize">
               {item.title}
-            </h2>
+            </p>
           </div>
 
           {/* Reward Callout if available */}
           {item.reward && item.reward > 0 && (
             <div className="mb-6 bg-amber-400 border-2 border-black p-3 text-center rounded-2xl shadow-sm">
               <span className="text-xs uppercase tracking-widest font-black text-black block">
-                SUBSTANTIAL REWARD OFFERED
+                {t('flyer.reward')}
               </span>
               <span className="text-3xl font-black text-black">
-                ${item.reward} CASH REWARD
+                {t('flyer.cashReward', { amount: item.reward })}
               </span>
             </div>
           )}
@@ -97,7 +95,7 @@ export default function PrintFlyerModal({ item, onClose }: PrintFlyerModalProps)
                   <MapPin className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                   <div>
                     <div className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                      Last Seen Location:
+                      {t('flyer.lastSeen')}
                     </div>
                     <div className="text-sm font-extrabold text-gray-900">
                       {item.location.address}
@@ -109,7 +107,7 @@ export default function PrintFlyerModal({ item, onClose }: PrintFlyerModalProps)
                   <Calendar className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                   <div>
                     <div className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                      Date & Time Lost:
+                      {t('flyer.whenLost')}
                     </div>
                     <div className="text-sm font-extrabold text-gray-900">
                       {formattedDate}
@@ -121,7 +119,7 @@ export default function PrintFlyerModal({ item, onClose }: PrintFlyerModalProps)
               {/* Description */}
               <div>
                 <div className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
-                  Identifying Features:
+                  {t('flyer.features')}
                 </div>
                 <p className="text-xs text-gray-700 leading-relaxed bg-white border border-gray-200 p-3 rounded-xl">
                   {item.description}
@@ -134,24 +132,24 @@ export default function PrintFlyerModal({ item, onClose }: PrintFlyerModalProps)
           <div className="border-t-4 border-gray-900 pt-6 flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex-1 space-y-2 text-center sm:text-left">
               <div className="text-base font-black text-gray-900 uppercase">
-                IF SEEN OR FOUND, PLEASE CONTACT:
+                {t('flyer.ifSeen')}
               </div>
               <div className="text-xl font-black text-blue-700">
-                {item.userPhone || item.userEmail || 'Message the poster on the LostFound app'}
+                {item.userPhone || item.userEmail || t('flyer.messagePoster')}
               </div>
               <div className="text-xs text-gray-500">
-                Or report safely on <strong>LostFound Community Network</strong>
+                {t('flyer.reportSafely')}
               </div>
             </div>
 
             <div className="flex flex-col items-center text-center shrink-0">
               <img
                 src={qrCodeUrl}
-                alt="Scan QR"
+                alt={t('flyer.scanQr')}
                 className="w-24 h-24 border border-gray-300 rounded-xl p-1 bg-white shadow-xs"
               />
-              <span className="text-[10px] font-bold text-gray-500 mt-1 uppercase">
-                Scan to View & Report
+              <span className="text-[0.625rem] font-bold text-gray-500 mt-1 uppercase">
+                {t('flyer.scan')}
               </span>
             </div>
           </div>

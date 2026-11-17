@@ -31,8 +31,8 @@ async function rawCall(path: string, init?: RequestInit): Promise<{ token?: stri
 const post = (path: string, body: unknown, loadingMessage: string) =>
   call(path, { method: 'POST', body: JSON.stringify(body) }, loadingMessage);
 
-const SIGNING_IN = 'Signing you in…';
-const CREATING = 'Creating your account…';
+const SIGNING_IN = 'loading.signingIn';
+const CREATING = 'loading.creatingAccount';
 
 /**
  * After the Google OAuth callback: log in if the account exists,
@@ -55,7 +55,7 @@ export function loginOrRegisterWithGoogle(accessToken: string): Promise<User> {
       }
       throw e;
     }
-  }, 'Signing in with Google…');
+  }, 'loading.googleSignIn');
 }
 
 export async function loginWithEmail(email: string, password: string): Promise<User> {
@@ -74,7 +74,7 @@ export async function registerWithEmail(input: {
 /** Returns the logged-in user if the 24h token is still valid, else null. */
 export async function fetchCurrentUser(): Promise<User | null> {
   try {
-    return (await call('/api/auth/me', undefined, 'Checking your session…')).user;
+    return (await call('/api/auth/me', undefined, 'loading.checkingSession')).user;
   } catch (e) {
     if (e instanceof AuthError && e.status === 401) return null;
     throw e;

@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { Claim } from '@/types';
-import { getRejectionReason, REJECTION_REASONS } from '@/lib/claims';
+import { getRejectionReason } from '@/lib/claims';
+import { useI18n } from '@/i18n/LanguageProvider';
 import { CheckCircle2, XCircle, Phone, Mail, Clock, HelpCircle, MessageCircle } from 'lucide-react';
 
 const OTHER = '__other__';
@@ -19,7 +20,10 @@ interface ClaimReviewCardProps {
 
 /** One claim with its 3 proofs and approve/reject actions – visible only to the item's poster. */
 export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate, onMessage }: ClaimReviewCardProps) {
+  const { t, formatDate } = useI18n();
   const [rejecting, setRejecting] = useState(false);
+  // Preset reasons are saved in the reviewer's language – the claimant sees exactly what the reviewer chose.
+  const presetReasons = [t('review.reason1'), t('review.reason2'), t('review.reason3'), t('review.reason4')];
   const [preset, setPreset] = useState<string>('');
   const [customReason, setCustomReason] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +33,7 @@ export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate,
   const submitRejection = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reason) {
-      setError('Please choose or write a reason so the claimant knows why');
+      setError(t('review.needReason'));
       return;
     }
     onUpdate(claim.id, 'rejected', reason);
@@ -43,18 +47,18 @@ export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate,
         <div className="min-w-0">
           {showItemTitle && (
             <>
-              <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Item Claimed:</span>
+              <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">{t('review.itemClaimed')}</span>
               <h4 className="font-bold text-gray-900 text-base">{claim.itemTitle}</h4>
             </>
           )}
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs text-gray-500">
             <span>
-              Submitted by: <strong>{claim.claimantName}</strong>
+              {t('review.submittedBy')} <strong>{claim.claimantName}</strong>
             </span>
             <span>&bull;</span>
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              {new Date(claim.createdAt).toLocaleDateString()}
+              {formatDate(claim.createdAt)}
             </span>
           </div>
         </div>
@@ -68,7 +72,7 @@ export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate,
               : 'bg-amber-100 text-amber-800'
           }`}
         >
-          {claim.status}
+          {t(`common.claim${claim.status === 'pending' ? 'Pending' : claim.status === 'approved' ? 'Approved' : 'Rejected'}`)}
         </span>
       </div>
 
@@ -76,12 +80,12 @@ export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate,
       <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2.5 text-xs">
         <div className="font-bold text-gray-700 flex items-center gap-1.5 pb-1 border-b border-gray-200">
           <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
-          <span>Claimant&apos;s 3 Secret Proofs:</span>
+          <span>{t('review.proofsHeading')}</span>
         </div>
         {[
-          ['Proof 1 (Markings / Exterior):', claim.proof1],
-          ['Proof 2 (Internal Contents / Attached):', claim.proof2],
-          ['Proof 3 (Secret Verification / Lockscreen / Serial):', claim.proof3],
+          [t('review.proof1'), claim.proof1],
+          [t('review.proof2'), claim.proof2],
+          [t('review.proof3'), claim.proof3],
         ].map(([label, value]) => (
           <div key={label}>
             <span className="font-semibold text-gray-800 block">{label}</span>
@@ -94,7 +98,7 @@ export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate,
       {claim.status === 'approved' && (
         <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 space-y-1">
           <div className="font-bold flex items-center gap-1.5 text-emerald-800">
-            <CheckCircle2 className="w-4 h-4" /> Claim Approved &mdash; Contact Information Unlocked:
+            <CheckCircle2 className="w-4 h-4" /> {t('review.approvedUnlocked')}
           </div>
           <div className="flex flex-wrap items-center gap-3 pt-1">
             {claim.claimantPhone && (
@@ -115,14 +119,14 @@ export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate,
           onClick={() => onMessage(claim)}
           className="text-xs font-bold text-blue-700 hover:underline flex items-center gap-1.5"
         >
-          <MessageCircle className="w-4 h-4" /> Message {claim.claimantName.split(' ')[0]} about this claim
+          <MessageCircle className="w-4 h-4" /> {t('review.messageAbout', { name: claim.claimantName.split(' ')[0] })}
         </button>
       )}
 
       {/* Rejection reason shown to both poster and claimant */}
       {claim.status === 'rejected' && getRejectionReason(claim) && (
         <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-xs text-red-900">
-          <span className="font-bold">Rejection reason:</span> {getRejectionReason(claim)}
+          <span className="font-bold">{t('review.rejectionReason')}</span> {getRejectionReason(claim)}
         </div>
       )}
 
@@ -130,9 +134,9 @@ export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate,
       {claim.status === 'pending' && rejecting && (
         <form onSubmit={submitRejection} className="pt-3 border-t border-gray-100 space-y-3">
           <fieldset>
-            <legend className="text-xs font-bold text-gray-800 mb-2">Why are you rejecting this claim?</legend>
+            <legend className="text-xs font-bold text-gray-800 mb-2">{t('review.whyReject')}</legend>
             <div className="space-y-1.5">
-              {[...REJECTION_REASONS, OTHER].map((r) => (
+              {[...presetReasons, OTHER].map((r) => (
                 <label
                   key={r}
                   className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border cursor-pointer transition ${
@@ -150,7 +154,7 @@ export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate,
                     }}
                     className="accent-red-600"
                   />
-                  {r === OTHER ? 'Other (write your own)' : r}
+                  {r === OTHER ? t('review.other') : r}
                 </label>
               ))}
             </div>
@@ -165,11 +169,12 @@ export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate,
               }}
               maxLength={300}
               rows={3}
-              placeholder="Explain briefly why the proofs don't match…"
+              placeholder={t('review.otherPlaceholder')}
+              aria-label={t('review.other')}
               className="w-full text-xs border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400"
             />
           )}
-          {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
+          {error && <p role="alert" className="text-xs font-semibold text-red-600">{error}</p>}
           <div className="flex flex-wrap justify-end gap-2">
             <button
               type="button"
@@ -179,14 +184,14 @@ export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate,
               }}
               className="px-4 py-2 text-xs font-bold text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-xl transition"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition flex items-center gap-1.5"
             >
               <XCircle className="w-4 h-4" />
-              Confirm rejection
+              {t('review.confirmReject')}
             </button>
           </div>
         </form>
@@ -200,14 +205,14 @@ export default function ClaimReviewCard({ claim, showItemTitle = true, onUpdate,
             className="px-4 py-2 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition flex items-center gap-1.5"
           >
             <XCircle className="w-4 h-4" />
-            Reject…
+            {t('review.reject')}
           </button>
           <button
             onClick={() => onUpdate(claim.id, 'approved')}
             className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition flex items-center gap-1.5"
           >
             <CheckCircle2 className="w-4 h-4" />
-            Approve & Release Contact
+            {t('review.approve')}
           </button>
         </div>
       )}

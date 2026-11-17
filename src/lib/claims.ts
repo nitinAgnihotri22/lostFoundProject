@@ -24,17 +24,3 @@ export const getRejectionReason = (claim: Pick<Claim, 'rejectionReason' | 'finde
   claim.rejectionReason || claim.finderNotes || '';
 
 export const ALREADY_CLAIMED_ERROR = 'You have already claimed this item.';
-
-/** Preset reasons offered to posters when rejecting a claim. */
-export const REJECTION_REASONS = [
-  'Proofs do not match the item',
-  'Details are too vague to verify',
-  'Item has already been returned to its owner',
-  'Suspected fraudulent claim',
-] as const;
-
-export const CLAIM_STATUS_LABEL: Record<Claim['status'], string> = {
-  pending: 'Already claimed · Pending review',
-  approved: 'Already claimed · Approved',
-  rejected: 'Claim rejected',
-};

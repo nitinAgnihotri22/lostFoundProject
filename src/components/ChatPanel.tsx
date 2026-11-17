@@ -4,6 +4,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Loader2, MessageCircle, Send, X } from 'lucide-react';
 import { Conversation, Message, User } from '@/types';
 import { api, ApiError } from '@/lib/api';
+import { useI18n } from '@/i18n/LanguageProvider';
+import { LOCALE_TAG } from '@/i18n/config';
+import type { TKey } from '@/i18n/translate';
 
 interface ChatPanelProps {
   isOpen: boolean;
@@ -21,13 +24,19 @@ const POLL_THREAD_MS = 4_000;
 const avatarFor = (name: string, avatar?: string) =>
   avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`;
 
-const timeLabel = (iso?: string) => {
+const timeLabel = (iso: string | undefined, locale: string) => {
   if (!iso) return '';
   const d = new Date(iso);
   const sameDay = d.toDateString() === new Date().toDateString();
   return sameDay
-    ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-    : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    ? d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })
+    : d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+};
+
+const STATUS_LABEL: Record<string, TKey> = {
+  active: 'common.statusActive',
+  claimed: 'common.statusClaimed',
+  resolved: 'common.statusResolved',
 };
 
 const ITEM_STATUS: Record<string, string> = {
@@ -37,6 +46,8 @@ const ITEM_STATUS: Record<string, string> = {
 };
 
 export default function ChatPanel({ isOpen, onClose, currentUser, initialConversationId, onUnreadChange, onOpenItem }: ChatPanelProps) {
+  const { t, lang } = useI18n();
+  const locale = LOCALE_TAG[lang];
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -62,7 +73,7 @@ export default function ChatPanel({ isOpen, onClose, currentUser, initialConvers
     } catch (e) {
       setError(
         e instanceof ApiError && (e.status === 503 || e.status === 500)
-          ? 'Messaging is not available yet – the database migration for chat (05_end_to_end.sql) has not been run.'
+          ? 'chat.unavailable'
           : (e as Error).message
       );
     }
@@ -144,7 +155,7 @@ export default function ChatPanel({ isOpen, onClose, currentUser, initialConvers
         )
       );
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Could not send the message.');
+      alert(e instanceof Error ? e.message : t('chat.sendFailed'));
     } finally {
       setSending(false);
     }
@@ -159,23 +170,25 @@ export default function ChatPanel({ isOpen, onClose, currentUser, initialConvers
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Messages"
+        aria-labelledby="chat-title"
         onClick={(e) => e.stopPropagation()}
         className="absolute right-0 top-0 h-full w-full md:w-[780px] bg-white shadow-2xl flex flex-col"
       >
         {/* Panel header */}
         <div className="flex items-center justify-between px-4 sm:px-5 h-14 border-b border-gray-100 bg-gray-50/70 shrink-0">
-          <div className="flex items-center gap-2 font-black text-gray-900">
+          <h2 id="chat-title" className="flex items-center gap-2 font-black text-gray-900">
             <MessageCircle className="w-5 h-5 text-blue-600" />
-            Messages
-          </div>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition" aria-label="Close messages">
+            {t('chat.title')}
+          </h2>
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition" aria-label={t('chat.close')}>
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {error && (
-          <div className="px-4 py-2 bg-red-50 border-b border-red-100 text-xs font-semibold text-red-800">{error}</div>
+          <div role="alert" className="px-4 py-2 bg-red-50 border-b border-red-100 text-xs font-semibold text-red-800">
+            {error === 'chat.unavailable' ? t('chat.unavailable') : error}
+          </div>
         )}
 
         <div className="flex-1 min-h-0 flex">
@@ -188,8 +201,8 @@ export default function ChatPanel({ isOpen, onClose, currentUser, initialConvers
             ) : conversations.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center px-6 text-gray-500">
                 <MessageCircle className="w-8 h-8 text-gray-300 mb-2" />
-                <p className="text-sm font-bold text-gray-700">No conversations yet</p>
-                <p className="text-xs mt-1">Open an item and tap “Message” to start one.</p>
+                <p className="text-sm font-bold text-gray-700">{t('chat.none')}</p>
+                <p className="text-xs mt-1">{t('chat.noneHint')}</p>
               </div>
             ) : (
               <ul className="flex-1 overflow-y-auto divide-y divide-gray-100">
@@ -197,6 +210,7 @@ export default function ChatPanel({ isOpen, onClose, currentUser, initialConvers
                   <li key={c.id}>
                     <button
                       onClick={() => setActiveId(c.id)}
+                      aria-current={c.id === activeId ? 'true' : undefined}
                       className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-blue-50/60 transition ${
                         c.id === activeId ? 'bg-blue-50' : ''
                       }`}
@@ -205,16 +219,16 @@ export default function ChatPanel({ isOpen, onClose, currentUser, initialConvers
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-sm font-bold text-gray-900 truncate">{c.participant.name}</span>
-                          <span className="text-[11px] text-gray-400 shrink-0">{timeLabel(c.lastMessageAt ?? c.createdAt)}</span>
+                          <span className="text-[0.6875rem] text-gray-400 shrink-0">{timeLabel(c.lastMessageAt ?? c.createdAt, locale)}</span>
                         </div>
-                        <div className="text-[11px] text-blue-700 font-semibold truncate">{c.item?.title ?? 'Item removed'}</div>
+                        <div className="text-[0.6875rem] text-blue-700 font-semibold truncate">{c.item?.title ?? t('chat.itemRemoved')}</div>
                         <div className="flex items-center justify-between gap-2 mt-0.5">
                           <span className={`text-xs truncate ${c.unreadCount ? 'text-gray-900 font-semibold' : 'text-gray-500'}`}>
-                            {c.lastSenderId === currentUser.id ? 'You: ' : ''}
-                            {c.lastMessagePreview ?? 'Say hello'}
+                            {c.lastSenderId === currentUser.id ? t('chat.you') : ''}
+                            {c.lastMessagePreview ?? t('chat.sayHello')}
                           </span>
                           {c.unreadCount > 0 && (
-                            <span className="shrink-0 bg-blue-600 text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
+                            <span aria-label={t('chat.unreadN', { count: c.unreadCount })} className="shrink-0 bg-blue-600 text-white text-[0.625rem] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
                               {c.unreadCount}
                             </span>
                           )}
@@ -230,11 +244,11 @@ export default function ChatPanel({ isOpen, onClose, currentUser, initialConvers
           {/* Thread */}
           <section className={`${activeId ? 'flex' : 'hidden md:flex'} flex-1 flex-col min-w-0 min-h-0`}>
             {!activeId ? (
-              <div className="flex-1 flex items-center justify-center text-sm text-gray-400">Select a conversation</div>
+              <div className="flex-1 flex items-center justify-center text-sm text-gray-500">{t('chat.select')}</div>
             ) : (
               <>
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 shrink-0">
-                  <button onClick={() => setActiveId(null)} className="md:hidden p-1.5 -ml-1 text-gray-500 hover:bg-gray-100 rounded-full" aria-label="Back to conversations">
+                  <button onClick={() => setActiveId(null)} className="md:hidden p-1.5 -ml-1 text-gray-500 hover:bg-gray-100 rounded-full" aria-label={t('chat.backToList')}>
                     <ArrowLeft className="w-5 h-5" />
                   </button>
                   {active && (
@@ -245,13 +259,13 @@ export default function ChatPanel({ isOpen, onClose, currentUser, initialConvers
                         {active.item && (
                           <button
                             onClick={() => onOpenItem?.(active.item!.id)}
-                            className="text-[11px] text-blue-700 font-semibold hover:underline truncate max-w-full flex items-center gap-1.5"
+                            className="text-[0.6875rem] text-blue-700 font-semibold hover:underline truncate max-w-full flex items-center gap-1.5"
                           >
                             <span className="truncate">
-                              {active.item.type === 'found' ? 'Found' : 'Lost'}: {active.item.title}
+                              {active.item.type === 'found' ? t('chat.foundLabel', { title: active.item.title }) : t('chat.lostLabel', { title: active.item.title })}
                             </span>
-                            <span className={`shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${ITEM_STATUS[active.item.status]}`}>
-                              {active.item.status}
+                            <span className={`shrink-0 px-1.5 py-0.5 rounded-full text-[0.625rem] font-bold uppercase ${ITEM_STATUS[active.item.status]}`}>
+                              {STATUS_LABEL[active.item.status] ? t(STATUS_LABEL[active.item.status]) : active.item.status}
                             </span>
                           </button>
                         )}
@@ -260,14 +274,14 @@ export default function ChatPanel({ isOpen, onClose, currentUser, initialConvers
                   )}
                 </div>
 
-                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-slate-50/60">
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-slate-50/60" role="log" aria-live="polite">
                   {loadingThread ? (
                     <div className="h-full flex items-center justify-center text-gray-400">
                       <Loader2 className="w-5 h-5 animate-spin" />
                     </div>
                   ) : messages.length === 0 ? (
-                    <p className="text-center text-xs text-gray-400 mt-8">
-                      No messages yet. Introduce yourself – never share passwords or payment details here.
+                    <p className="text-center text-xs text-gray-500 mt-8">
+                      {t('chat.empty')}
                     </p>
                   ) : (
                     messages.map((m) => {
@@ -280,9 +294,9 @@ export default function ChatPanel({ isOpen, onClose, currentUser, initialConvers
                             }`}
                           >
                             {m.body}
-                            <div className={`text-[10px] mt-1 ${mine ? 'text-blue-100' : 'text-gray-400'}`}>
-                              {timeLabel(m.createdAt)}
-                              {mine && m.readAt ? ' · Read' : ''}
+                            <div className={`text-[0.625rem] mt-1 ${mine ? 'text-blue-100' : 'text-gray-400'}`}>
+                              {timeLabel(m.createdAt, locale)}
+                              {mine && m.readAt ? t('chat.read') : ''}
                             </div>
                           </div>
                         </div>
@@ -310,14 +324,15 @@ export default function ChatPanel({ isOpen, onClose, currentUser, initialConvers
                     }}
                     rows={1}
                     maxLength={2000}
-                    placeholder="Write a message… (Enter to send)"
+                    placeholder={t('chat.placeholder')}
+                    aria-label={t('chat.messageLabel')}
                     className="flex-1 resize-none text-sm border border-gray-300 rounded-xl px-3 py-2 max-h-32 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
                     type="submit"
                     disabled={!draft.trim() || sending}
                     className="p-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition"
-                    aria-label="Send"
+                    aria-label={t('common.send')}
                   >
                     {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </button>

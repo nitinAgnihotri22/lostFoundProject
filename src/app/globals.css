@@ -46,3 +46,148 @@ body {
   line-height: 1.4;
 }
 
+
+/* ===================================================================
+   Accessibility (WCAG 2.2 AA)
+   Classes on <html> are set by the accessibility panel and restored
+   before first paint by the inline script in app/layout.tsx.
+   =================================================================== */
+
+/* 2.4.7 / 2.4.13 Focus visible: a clear ring on keyboard focus everywhere */
+:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* 2.4.1 Bypass blocks */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -100px;
+  z-index: 200;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: #1d4ed8;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* Visually hidden but read by screen readers */
+.sr-only-focusable:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* 2.3.3 Animation from interactions: respect the OS setting by default */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Stop animations (panel toggle) */
+html.a11y-stopAnimations *, html.a11y-stopAnimations *::before, html.a11y-stopAnimations *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* 1.4.6 High contrast: white/yellow on black */
+html.a11y-contrast body,
+html.a11y-contrast body *:not(img):not(video):not(svg):not(svg *):not(.leaflet-tile) {
+  background-color: #000 !important;
+  background-image: none !important;
+  color: #fff !important;
+  border-color: #fff !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+html.a11y-contrast a,
+html.a11y-contrast a *,
+html.a11y-contrast button,
+html.a11y-contrast button * {
+  color: #ffe600 !important;
+}
+html.a11y-contrast svg { color: #ffe600 !important; }
+html.a11y-contrast ::placeholder { color: #d4d4d4 !important; opacity: 1; }
+html.a11y-contrast :focus-visible { outline-color: #ffe600; }
+
+/* Inverted colours; photos, video and map tiles are flipped back so they look normal */
+html.a11y-invert {
+  filter: invert(1) hue-rotate(180deg);
+  background: #fff;
+}
+html.a11y-invert img,
+html.a11y-invert video,
+html.a11y-invert picture,
+html.a11y-invert canvas,
+html.a11y-invert iframe {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+html.a11y-grayscale { filter: grayscale(1); }
+
+/* 1.4.1 Use of colour: links are always distinguishable */
+html.a11y-highlightLinks a {
+  text-decoration: underline !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px !important;
+  background-color: #fef08a !important;
+  color: #000 !important;
+}
+
+/* Readable font (simple, wide letterforms; Devanagari falls back to the system Hindi font) */
+html.a11y-readableFont,
+html.a11y-readableFont *:not(svg):not(svg *) {
+  font-family: Verdana, Tahoma, 'Noto Sans', 'Noto Sans Devanagari', 'Kohinoor Devanagari', Arial, sans-serif !important;
+}
+
+/* 1.4.12 Text spacing */
+html.a11y-textSpacing body * {
+  line-height: 1.8 !important;
+  word-spacing: 0.16em !important;
+}
+html.a11y-textSpacing body p { margin-bottom: 1em; }
+/* Letter spacing breaks Devanagari conjuncts, so it applies to English only */
+html.a11y-textSpacing:not([lang='hi']) body * { letter-spacing: 0.12em !important; }
+
+html.a11y-hideImages img { visibility: hidden !important; }
+
+html.a11y-bigCursor, html.a11y-bigCursor * {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24'%3E%3Cpath d='M4 2l16 10-7 1.5L16.5 21l-3 1.5-3.5-7.5L4 19z' fill='%23000' stroke='%23fff' stroke-width='1.2'/%3E%3C/svg%3E") 4 2, auto !important;
+}
+
+/* Click-to-read: show what will be (or is being) read */
+html.a11y-clickToRead main :is(p, h1, h2, h3, h4, li, td, th, label, dt, dd, span, a, button):hover {
+  outline: 2px dashed #2563eb;
+  outline-offset: 2px;
+  cursor: help;
+}
+.a11y-reading {
+  outline: 3px solid #f59e0b !important;
+  outline-offset: 3px;
+  background-color: #fef3c7 !important;
+  color: #000 !important;
+}
+
+/* Legal / content pages */
+.prose-page h2 { font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-top: 2rem; margin-bottom: 0.75rem; scroll-margin-top: 6rem; }
+.prose-page h3 { font-size: 1rem; font-weight: 700; color: #1e293b; margin-top: 1.25rem; margin-bottom: 0.5rem; }
+.prose-page p, .prose-page li { font-size: 0.9375rem; line-height: 1.75; color: #334155; }
+.prose-page p { margin-bottom: 0.75rem; }
+.prose-page ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+.prose-page ol { list-style: decimal; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+.prose-page li { margin-bottom: 0.35rem; }
+.prose-page a { color: #1d4ed8; text-decoration: underline; text-underline-offset: 2px; }
+.prose-page strong { color: #0f172a; }

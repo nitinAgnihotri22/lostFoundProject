@@ -3,6 +3,12 @@
 import React, { useEffect, useRef } from 'react';
 import { Item, GeoLocation } from '@/types';
 import L from 'leaflet';
+import { useI18n } from '@/i18n/LanguageProvider';
+import { LOCALE_TAG } from '@/i18n/config';
+
+/** Item titles and addresses are user input – escape them before putting them in popup HTML. */
+const esc = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 interface MapComponentProps {
   items?: (Item & { distanceKm?: number })[];
@@ -25,6 +31,7 @@ export default function MapComponent({
   onCoordSelect,
   height = '480px',
 }: MapComponentProps) {
+  const { t, lang } = useI18n();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
@@ -110,7 +117,7 @@ export default function MapComponent({
       });
 
       L.marker([centerLocation.lat, centerLocation.lng], { icon: centerIcon })
-        .bindTooltip(`Search Center (Radius: ${radiusKm}km)`, { direction: 'top' })
+        .bindTooltip(t('map.searchCenter', { km: radiusKm }), { direction: 'top' })
         .addTo(markersLayer);
     } else if (circleLayerRef.current) {
       circleLayerRef.current.remove();
@@ -131,7 +138,7 @@ export default function MapComponent({
       });
 
       L.marker([selectedCoord.lat, selectedCoord.lng], { icon: pinIcon })
-        .bindTooltip('Drop location here', { permanent: true, direction: 'top' })
+        .bindTooltip(t('map.dropHere'), { permanent: true, direction: 'top' })
         .addTo(markersLayer);
 
       map.panTo([selectedCoord.lat, selectedCoord.lng]);
@@ -142,7 +149,7 @@ export default function MapComponent({
     items.forEach((item) => {
       const isFound = item.type === 'found';
       const bgColor = isFound ? '#10B981' : '#F59E0B'; // Emerald for found, Amber for lost
-      const badgeText = isFound ? 'FOUND' : 'LOST';
+      const badgeText = isFound ? t('map.found') : t('map.lost');
 
       const customIcon = L.divIcon({
         className: 'custom-item-marker',
@@ -162,17 +169,17 @@ export default function MapComponent({
       popupContent.style.minWidth = '200px';
       popupContent.innerHTML = `
         <div style="font-family: inherit;">
-          ${item.images[0] ? `<img src="${item.images[0]}" alt="${item.title}" style="width: 100%; height: 110px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" />` : ''}
-          <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px; color: #111827;">${item.title}</div>
-          <div style="font-size: 12px; color: #6B7280; margin-bottom: 6px;">📍 ${item.location.address}</div>
-          <div style="font-size: 11px; color: #4B5563; margin-bottom: 8px;">🕒 ${new Date(item.occurredAt).toLocaleString()}</div>
-          <button id="view-btn-${item.id}" style="width: 100%; background-color: #2563EB; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; border: none; cursor: pointer;">
-            View Details & Claim
+          ${item.images[0] ? `<img src="${esc(item.images[0])}" alt="" style="width: 100%; height: 110px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" />` : ''}
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px; color: #111827;">${esc(item.title)}</div>
+          <div style="font-size: 12px; color: #6B7280; margin-bottom: 6px;">📍 ${esc(item.location.address)}</div>
+          <div style="font-size: 11px; color: #4B5563; margin-bottom: 8px;">🕒 ${new Date(item.occurredAt).toLocaleString(LOCALE_TAG[lang])}</div>
+          <button type="button" id="view-btn-${esc(item.id)}" style="width: 100%; background-color: #2563EB; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; border: none; cursor: pointer;">
+            ${esc(t('map.viewDetails'))}
           </button>
         </div>
       `;
 
-      popupContent.querySelector(`#view-btn-${item.id}`)?.addEventListener('click', () => {
+      popupContent.querySelector("button")?.addEventListener('click', () => {
         if (onSelectItem) onSelectItem(item);
       });
 
@@ -184,14 +191,14 @@ export default function MapComponent({
       const bounds = L.latLngBounds(items.map((i) => [i.location.lat, i.location.lng]));
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
     }
-  }, [items, centerLocation, radiusKm, pickerMode, selectedCoord, onSelectItem]);
+  }, [items, centerLocation, radiusKm, pickerMode, selectedCoord, onSelectItem, t, lang]);
 
   return (
     <div className="relative w-full overflow-hidden rounded-xl border border-gray-200 shadow-sm">
-      <div ref={mapContainerRef} style={{ height, width: '100%' }} />
+      <div ref={mapContainerRef} role="region" aria-label={t('map.label')} style={{ height, width: '100%' }} />
       {pickerMode && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-gray-200 text-xs font-semibold text-gray-700 pointer-events-none z-[1000] flex items-center gap-2">
-          <span>📍</span> Click anywhere on the map to set the geocode location
+          <span aria-hidden="true">📍</span> {t('map.clickToSet')}
         </div>
       )}
     </div>

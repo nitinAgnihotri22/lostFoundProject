@@ -3,6 +3,8 @@
 // overlay while at least one tracked request is in flight. Nested/parallel
 // calls are counted, so the overlay stays up until the last one finishes,
 // and it shows the message of the most recently started request.
+// Messages are i18n keys under `loading.*` (see src/i18n/dictionaries); the
+// loader translates them, and shows any other string as-is.
 
 type Entry = { id: number; message: string };
 
@@ -18,7 +20,7 @@ function emit() {
 
 export async function trackRequest<T>(
   work: Promise<T> | (() => Promise<T>),
-  message = 'Please wait…'
+  message = 'loading.default'
 ): Promise<T> {
   const id = nextId++;
   entries = [...entries, { id, message }];

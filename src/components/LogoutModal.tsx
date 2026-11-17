@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Loader2, LogOut } from 'lucide-react';
+import { useI18n } from '@/i18n/LanguageProvider';
 
 interface LogoutModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface LogoutModalProps {
 }
 
 export default function LogoutModal({ isOpen, userName, onCancel, onConfirm }: LogoutModalProps) {
+  const { t } = useI18n();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   if (!isOpen) return null;
@@ -40,12 +42,14 @@ export default function LogoutModal({ isOpen, userName, onCancel, onConfirm }: L
           {isLoggingOut ? <Loader2 className="w-6 h-6 animate-spin" /> : <LogOut className="w-6 h-6" />}
         </div>
         <h3 id="logout-title" className="text-lg font-black text-gray-900">
-          {isLoggingOut ? 'Logging out…' : 'Log out?'}
+          {isLoggingOut ? t('logout.loggingOut') : t('logout.title')}
         </h3>
         <p className="text-xs text-gray-500 mt-1 mb-5">
           {isLoggingOut
-            ? 'Ending your session, please wait.'
-            : `${userName ? `${userName}, you` : 'You'}'ll need to sign in again to report items or submit claims.`}
+            ? t('logout.ending')
+            : userName
+              ? t('logout.bodyName', { name: userName })
+              : t('logout.body')}
         </p>
         <div className="flex gap-2">
           <button
@@ -54,7 +58,7 @@ export default function LogoutModal({ isOpen, userName, onCancel, onConfirm }: L
             disabled={isLoggingOut}
             className="flex-1 py-2.5 rounded-xl border border-gray-300 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -64,7 +68,7 @@ export default function LogoutModal({ isOpen, userName, onCancel, onConfirm }: L
             className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-70 flex items-center justify-center gap-2"
           >
             {isLoggingOut && <Loader2 className="w-4 h-4 animate-spin" />}
-            {isLoggingOut ? 'Logging out…' : 'Log out'}
+            {isLoggingOut ? t('logout.loggingOut') : t('logout.confirm')}
           </button>
         </div>
       </div>

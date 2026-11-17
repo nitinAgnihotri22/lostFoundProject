@@ -1,0 +1,6 @@
+User-Agent: *
+Allow: /
+Disallow: /api/
+Disallow: /profile
+
+Sitemap: https://lostfound.example.com/sitemap.xml

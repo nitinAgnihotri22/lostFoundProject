@@ -1,0 +1,214 @@
+// Privacy Policy – written for India (DPDP Act 2023, IT Act 2000, IT Rules 2011/2021).
+// MOCK: company details come from src/lib/siteConfig.ts. Have a lawyer review before launch.
+import type { Lang } from '@/i18n/config';
+import { formattedAddress, siteConfig as c } from '@/lib/siteConfig';
+import type { Doc } from './types';
+
+export function privacyPolicy(lang: Lang): Doc {
+  const co = c.company.legalName;
+  const g = c.grievanceOfficer;
+
+  if (lang === 'hi') {
+    return {
+      intro: [
+        `यह गोपनीयता नीति बताती है कि ${co} ("LostFound", "हम") आपके व्यक्तिगत डेटा को कैसे एकत्र, उपयोग, साझा और सुरक्षित करता है जब आप हमारी वेबसाइट और ऐप का उपयोग करते हैं। LostFound का उपयोग करके आप इस नीति से सहमत होते हैं।`,
+      ],
+      sections: [
+        { id: 'who-we-are', title: '1. हम कौन हैं', blocks: [
+          `डिजिटल व्यक्तिगत डेटा संरक्षण अधिनियम 2023 ("DPDP अधिनियम") के तहत ${co} आपके व्यक्तिगत डेटा का "डेटा फ़िड्यूशरी" है।`,
+          { dl: [['पता', formattedAddress()], ['ईमेल', c.contact.email], ['फ़ोन', c.contact.phone]] },
+        ] },
+        { id: 'data-we-collect', title: '2. हम कौन-सा डेटा एकत्र करते हैं', blocks: [
+          [
+            'खाता विवरण: नाम, ईमेल पता, फ़ोन नंबर (वैकल्पिक), पासवर्ड (केवल एन्क्रिप्टेड रूप में), और Google से साइन इन करने पर आपका Google प्रोफ़ाइल नाम और फ़ोटो।',
+            'वस्तु रिपोर्ट: फ़ोटो, शीर्षक, विवरण, श्रेणी, मिलने या खोने की तारीख और समय, और नक्शे पर चुना गया स्थान (अक्षांश/देशांतर और पता)।',
+            'दावे: आपके दिए 3 सत्यापन प्रमाण और संपर्क फ़ोन नंबर।',
+            'संदेश: ऐप में भेजे गए चैट संदेश।',
+            'संपर्क फ़ॉर्म: नाम, ईमेल, फ़ोन (वैकल्पिक) और आपका संदेश।',
+            'तकनीकी डेटा: IP पता, ब्राउज़र और डिवाइस का प्रकार, और त्रुटि लॉग।',
+            'स्थान: आपकी अनुमति से ब्राउज़र का GPS स्थान, केवल आस-पास की वस्तुएँ दिखाने के लिए। हम इसे आपके खाते में सेव नहीं करते।',
+          ],
+        ] },
+        { id: 'how-we-use', title: '3. हम डेटा का उपयोग कैसे करते हैं', blocks: [
+          [
+            'आपका खाता बनाना और साइन इन बनाए रखना।',
+            'मिली वस्तुओं को प्रकाशित करना और आस-पास के लोगों को दिखाना।',
+            'दावे पोस्ट करने वाले तक पहुँचाना और स्वीकृत होने पर संपर्क विवरण साझा करना।',
+            'आपको और दूसरे उपयोगकर्ता को ऐप में संदेश भेजने देना।',
+            'धोखाधड़ी, स्पैम और दुरुपयोग रोकना और प्लेटफ़ॉर्म को सुरक्षित रखना।',
+            'आपके प्रश्नों और शिकायतों का जवाब देना।',
+            'कानूनी दायित्वों का पालन करना।',
+          ],
+          'हम आपका व्यक्तिगत डेटा नहीं बेचते।',
+        ] },
+        { id: 'legal-basis', title: '4. प्रसंस्करण का आधार', blocks: [
+          'हम आपका डेटा आपकी सहमति से (जैसे खाता बनाते समय या फ़ॉर्म भेजते समय) और DPDP अधिनियम की धारा 7 में दिए "वैध उपयोगों" के लिए संसाधित करते हैं, जैसे कि आपने स्वेच्छा से जो जानकारी दी है उसके लिए, या कानून का पालन करने के लिए। आप कभी भी सहमति वापस ले सकते हैं; इससे पहले की गई प्रक्रिया प्रभावित नहीं होती।',
+        ] },
+        { id: 'who-can-see', title: '5. कौन क्या देख सकता है', blocks: [
+          [
+            'सार्वजनिक: वस्तु की फ़ोटो, शीर्षक, विवरण, श्रेणी, स्थान, समय और पोस्ट करने वाले का नाम।',
+            'केवल पोस्ट करने वाला: किसी दावे के 3 प्रमाण और दावेदार का नाम।',
+            'दावा स्वीकृत होने के बाद ही: पोस्ट करने वाले और दावेदार का ईमेल और फ़ोन एक-दूसरे को दिखता है।',
+            'चैट संदेश: केवल बातचीत में शामिल दो लोग।',
+          ],
+        ] },
+        { id: 'sharing', title: '6. हम डेटा किसके साथ साझा करते हैं', blocks: [
+          'हम सेवा चलाने के लिए इन "डेटा प्रोसेसर" का उपयोग करते हैं, जो केवल हमारे निर्देशों पर काम करते हैं:',
+          [
+            'Supabase – डेटाबेस, फ़ाइल भंडारण और प्रमाणीकरण।',
+            'Google – "Google के साथ जारी रखें" साइन इन।',
+            'OpenStreetMap (Nominatim) – पता खोजना और निर्देशांकों से पता निकालना। इसमें आपका खोज शब्द या चुने गए निर्देशांक भेजे जाते हैं।',
+            'हमारा होस्टिंग प्रदाता – वेबसाइट चलाने के लिए।',
+          ],
+          'कानून के अनुसार माँगे जाने पर हम पुलिस, अदालत या सरकारी एजेंसियों के साथ डेटा साझा कर सकते हैं।',
+        ] },
+        { id: 'cookies', title: '7. कुकीज़ और स्थानीय भंडारण', blocks: [
+          { dl: [
+            ['lf_token (कुकी)', 'आपको 24 घंटे तक साइन इन रखती है। ज़रूरी।'],
+            ['lf_lang (कुकी)', 'आपकी चुनी हुई भाषा (English/हिन्दी) याद रखती है।'],
+            ['lf_a11y (ब्राउज़र भंडारण)', 'आपकी सुगम्यता सेटिंग (अक्षर का आकार, रंग आदि) याद रखती है। यह हमारे सर्वर पर नहीं भेजी जाती।'],
+          ] },
+          'हम विज्ञापन या ट्रैकिंग कुकीज़ का उपयोग नहीं करते। यदि भविष्य में करेंगे, तो पहले आपकी सहमति लेंगे।',
+        ] },
+        { id: 'retention', title: '8. हम डेटा कितने समय तक रखते हैं', blocks: [
+          [
+            'खाता डेटा: जब तक आपका खाता सक्रिय है।',
+            'वस्तु रिपोर्ट, दावे और संदेश: रिपोर्ट बंद होने के 12 महीने बाद तक, फिर हटा दिए जाते हैं।',
+            'संपर्क फ़ॉर्म संदेश: 24 महीने तक।',
+            'कानूनन ज़रूरी होने पर (जैसे IT नियमों के तहत लॉग) हम डेटा अधिक समय तक रख सकते हैं।',
+          ],
+        ] },
+        { id: 'security', title: '9. सुरक्षा', blocks: [
+          'हम एन्क्रिप्टेड कनेक्शन (HTTPS), एन्क्रिप्टेड पासवर्ड, सीमित पहुँच और नियमित बैकअप जैसे उचित सुरक्षा उपाय अपनाते हैं। डेटा उल्लंघन होने पर हम DPDP अधिनियम के अनुसार डेटा संरक्षण बोर्ड और प्रभावित उपयोगकर्ताओं को सूचित करेंगे।',
+        ] },
+        { id: 'your-rights', title: '10. आपके अधिकार', blocks: [
+          'DPDP अधिनियम के तहत आपको ये अधिकार हैं:',
+          [
+            'अपने व्यक्तिगत डेटा का सारांश और उसके उपयोग की जानकारी पाना।',
+            'गलत या अधूरे डेटा को सुधरवाना और अपडेट करवाना।',
+            'अपना डेटा हटवाना (जब तक कानून उसे रखने की माँग न करे)।',
+            'सहमति वापस लेना।',
+            'शिकायत निवारण पाना।',
+            'मृत्यु या अक्षमता की स्थिति में अपने अधिकारों के लिए किसी को नामित करना।',
+          ],
+          `इनमें से किसी भी अधिकार के लिए ${c.contact.email} पर लिखें। हम 30 दिनों के भीतर जवाब देंगे।`,
+        ] },
+        { id: 'children', title: '11. बच्चे', blocks: [
+          'LostFound 18 वर्ष से कम उम्र के बच्चों के लिए नहीं है। 18 वर्ष से कम उम्र का कोई व्यक्ति केवल माता-पिता या कानूनी अभिभावक की सत्यापित सहमति से इसका उपयोग कर सकता है। हम बच्चों का व्यवहार ट्रैक नहीं करते और न ही उन्हें लक्षित विज्ञापन दिखाते हैं।',
+        ] },
+        { id: 'transfers', title: '12. भारत के बाहर डेटा', blocks: [
+          'हमारे कुछ सेवा प्रदाता भारत के बाहर डेटा संग्रहीत कर सकते हैं। ऐसा केवल उन देशों में होगा जिन पर भारत सरकार ने DPDP अधिनियम के तहत रोक नहीं लगाई है।',
+        ] },
+        { id: 'grievance', title: '13. शिकायत अधिकारी', blocks: [
+          'आईटी नियम 2021 और DPDP अधिनियम के अनुसार:',
+          { dl: [['नाम', g.name], ['ईमेल', g.email], ['फ़ोन', g.phone], ['पता', formattedAddress()]] },
+          'हम 24 घंटे के भीतर शिकायत की पावती देंगे और 15 दिनों के भीतर उसका समाधान करेंगे। यदि आप हमारे जवाब से संतुष्ट नहीं हैं, तो आप भारत के डेटा संरक्षण बोर्ड से संपर्क कर सकते हैं।',
+        ] },
+        { id: 'changes', title: '14. इस नीति में बदलाव', blocks: [
+          'हम इस नीति को समय-समय पर अपडेट कर सकते हैं। बड़े बदलावों की सूचना हम वेबसाइट पर या ईमेल से देंगे। ऊपर "अंतिम अपडेट" की तारीख देखें।',
+        ] },
+      ],
+    };
+  }
+
+  return {
+    intro: [
+      `This Privacy Policy explains how ${co} ("LostFound", "we", "us") collects, uses, shares and protects your personal data when you use our website and app. By using LostFound you agree to this policy.`,
+    ],
+    sections: [
+      { id: 'who-we-are', title: '1. Who we are', blocks: [
+        `${co} is the "Data Fiduciary" for your personal data under the Digital Personal Data Protection Act, 2023 ("DPDP Act").`,
+        { dl: [['Address', formattedAddress()], ['Email', c.contact.email], ['Phone', c.contact.phone]] },
+      ] },
+      { id: 'data-we-collect', title: '2. Data we collect', blocks: [
+        [
+          'Account details: name, email address, phone number (optional), password (stored only in hashed form), and your Google profile name and photo if you sign in with Google.',
+          'Item reports: photos, title, description, category, date and time found or lost, and the location you pick on the map (latitude/longitude and address).',
+          'Claims: the 3 verification proofs you write and your contact phone number.',
+          'Messages: chat messages you send in the app.',
+          'Contact form: name, email, phone (optional) and your message.',
+          'Technical data: IP address, browser and device type, and error logs.',
+          'Location: your browser GPS position, with your permission, used only to show nearby items. We do not save it to your account.',
+        ],
+      ] },
+      { id: 'how-we-use', title: '3. How we use your data', blocks: [
+        [
+          'To create your account and keep you signed in.',
+          'To publish found items and show them to people nearby.',
+          'To pass claims to the poster and share contact details once a claim is approved.',
+          'To let you and another user message each other in the app.',
+          'To prevent fraud, spam and misuse, and keep the platform safe.',
+          'To answer your questions and complaints.',
+          'To comply with legal obligations.',
+        ],
+        'We do not sell your personal data.',
+      ] },
+      { id: 'legal-basis', title: '4. Basis for processing', blocks: [
+        'We process your data with your consent (for example when you create an account or send a form) and for the "legitimate uses" listed in Section 7 of the DPDP Act, such as information you have voluntarily provided for a purpose, or to comply with the law. You can withdraw consent at any time; this does not affect processing done before.',
+      ] },
+      { id: 'who-can-see', title: '5. Who can see what', blocks: [
+        [
+          'Public: item photos, title, description, category, location, time and the poster’s display name.',
+          'Only the poster: the 3 proofs in a claim and the claimant’s name.',
+          'Only after a claim is approved: the poster’s and claimant’s email and phone become visible to each other.',
+          'Chat messages: only the two people in the conversation.',
+        ],
+      ] },
+      { id: 'sharing', title: '6. Who we share data with', blocks: [
+        'We use these "Data Processors" to run the service. They act only on our instructions:',
+        [
+          'Supabase – database, file storage and authentication.',
+          'Google – "Continue with Google" sign-in.',
+          'OpenStreetMap (Nominatim) – address search and turning coordinates into addresses. Your search text or chosen coordinates are sent to it.',
+          'Our hosting provider – to run the website.',
+        ],
+        'We may share data with police, courts or government agencies when the law requires it.',
+      ] },
+      { id: 'cookies', title: '7. Cookies and local storage', blocks: [
+        { dl: [
+          ['lf_token (cookie)', 'Keeps you signed in for 24 hours. Essential.'],
+          ['lf_lang (cookie)', 'Remembers your language (English/हिन्दी).'],
+          ['lf_a11y (browser storage)', 'Remembers your accessibility settings (text size, colours, etc.). It is never sent to our servers.'],
+        ] },
+        'We do not use advertising or tracking cookies. If we ever do, we will ask for your consent first.',
+      ] },
+      { id: 'retention', title: '8. How long we keep data', blocks: [
+        [
+          'Account data: as long as your account is active.',
+          'Item reports, claims and messages: until 12 months after the report is closed, then deleted.',
+          'Contact form messages: up to 24 months.',
+          'We may keep data longer where the law requires it (for example, logs under the IT Rules).',
+        ],
+      ] },
+      { id: 'security', title: '9. Security', blocks: [
+        'We use reasonable security safeguards, including encrypted connections (HTTPS), hashed passwords, restricted access and regular backups. If a personal data breach happens, we will inform the Data Protection Board and affected users as the DPDP Act requires.',
+      ] },
+      { id: 'your-rights', title: '10. Your rights', blocks: [
+        'Under the DPDP Act you have the right to:',
+        [
+          'Get a summary of your personal data and how it is used.',
+          'Correct, complete or update inaccurate data.',
+          'Have your data erased (unless the law requires us to keep it).',
+          'Withdraw your consent.',
+          'Grievance redressal.',
+          'Nominate someone to exercise your rights in case of death or incapacity.',
+        ],
+        `To use any of these rights, write to ${c.contact.email}. We reply within 30 days.`,
+      ] },
+      { id: 'children', title: '11. Children', blocks: [
+        'LostFound is not meant for children under 18. A person under 18 may use it only with verifiable consent from a parent or legal guardian. We do not track children’s behaviour or show them targeted advertising.',
+      ] },
+      { id: 'transfers', title: '12. Data outside India', blocks: [
+        'Some of our service providers may store data outside India. This happens only in countries the Government of India has not restricted under the DPDP Act.',
+      ] },
+      { id: 'grievance', title: '13. Grievance Officer', blocks: [
+        'As required by the IT Rules 2021 and the DPDP Act:',
+        { dl: [['Name', g.name], ['Email', g.email], ['Phone', g.phone], ['Address', formattedAddress()]] },
+        'We acknowledge complaints within 24 hours and resolve them within 15 days. If you are not satisfied with our response, you may approach the Data Protection Board of India.',
+      ] },
+      { id: 'changes', title: '14. Changes to this policy', blocks: [
+        'We may update this policy from time to time. We will announce major changes on the website or by email. See the "Last updated" date above.',
+      ] },
+    ],
+  };
+}

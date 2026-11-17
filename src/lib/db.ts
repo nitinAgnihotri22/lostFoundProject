@@ -435,3 +435,49 @@ export async function uploadPhoto(path: string, bytes: ArrayBuffer, contentType:
   if (error) throw error;
   return supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
 }
+
+// ===================================================================
+// Contact Us messages (migration 06_contact_messages.sql)
+// ===================================================================
+export const CONTACT_SUBJECTS = ['general', 'listing', 'claim', 'account', 'accessibility', 'partnership', 'other'] as const;
+export type ContactSubject = (typeof CONTACT_SUBJECTS)[number];
+
+export interface NewContactMessage {
+  name: string;
+  email: string;
+  phone?: string;
+  subject: ContactSubject;
+  message: string;
+  lang: string;
+  userId?: string | null;
+  pageUrl?: string;
+  userAgent?: string;
+}
+
+/** Short, unambiguous reference for the sender (no 0/O/1/I). */
+function contactReference(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = crypto.randomBytes(6);
+  return 'LF-' + Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
+}
+
+export async function insertContactMessage(msg: NewContactMessage): Promise<{ id: string; reference: string }> {
+  const id = crypto.randomUUID();
+  const reference = contactReference();
+  const { error } = await supabase.from('contact_messages').insert({
+    id,
+    reference,
+    name: msg.name,
+    email: msg.email,
+    phone: msg.phone || null,
+    subject: msg.subject,
+    message: msg.message,
+    lang: msg.lang,
+    user_id: msg.userId ?? null,
+    page_url: msg.pageUrl?.slice(0, 500) || null,
+    user_agent: msg.userAgent?.slice(0, 500) || null,
+    created_at: nowIso(),
+  });
+  if (error) throw error;
+  return { id, reference };
+}

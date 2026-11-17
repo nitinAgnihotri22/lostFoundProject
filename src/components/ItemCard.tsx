@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { Claim, Item } from '@/types';
-import { CLAIM_STATUS_LABEL, getRejectionReason } from '@/lib/claims';
+import { getRejectionReason } from '@/lib/claims';
+import { useI18n } from '@/i18n/LanguageProvider';
 import { MapPin, Calendar, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 interface ItemCardProps {
@@ -22,21 +23,17 @@ const CLAIM_PILL: Record<Claim['status'], string> = {
 };
 
 export default function ItemCard({ item, onSelect, onClaimClick, isOwner = false, myClaim }: ItemCardProps) {
+  const { t, formatDateTime } = useI18n();
   const isFound = item.type === 'found';
   const hasUserPhoto = item.images && item.images.length > 0;
   const coverImage = hasUserPhoto
     ? item.images[0]
     : 'https://images.unsplash.com/photo-1584824486509-112e4181ff6b?w=600&auto=format&fit=crop&q=80';
 
-  const formattedDate = new Date(item.occurredAt).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const formattedDate = formatDateTime(item.occurredAt);
 
   return (
-    <div 
+    <article
       onClick={() => onSelect(item)}
       className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-200 overflow-hidden cursor-pointer flex flex-col justify-between"
     >
@@ -45,7 +42,7 @@ export default function ItemCard({ item, onSelect, onClaimClick, isOwner = false
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
           <img
             src={coverImage}
-            alt={item.title}
+            alt=""
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
           />
@@ -60,25 +57,25 @@ export default function ItemCard({ item, onSelect, onClaimClick, isOwner = false
                   : 'bg-amber-500 text-white'
               }`}
             >
-              {isFound ? 'Found Item' : 'Lost Item'}
+              {isFound ? t('itemCard.found') : t('itemCard.lost')}
             </span>
             {item.images.length > 1 && (
-              <span className="bg-black/60 text-white backdrop-blur-md text-[11px] font-medium px-2 py-0.5 rounded-full">
-                +{item.images.length - 1} photos
+              <span className="bg-black/60 text-white backdrop-blur-md text-[0.6875rem] font-medium px-2 py-0.5 rounded-full">
+                {t('itemCard.morePhotos', { count: item.images.length - 1 })}
               </span>
             )}
           </div>
 
           {/* Category Tag */}
           <span className="absolute top-3 right-3 bg-white/90 backdrop-blur-md text-gray-800 text-xs font-semibold px-2.5 py-1 rounded-lg capitalize shadow">
-            {item.category}
+            {t(`categories.${item.category}`)}
           </span>
 
           {/* Distance Badge if available */}
           {item.distanceKm !== undefined && (
             <div className="absolute bottom-3 left-3 bg-blue-600/90 text-white backdrop-blur-md text-xs font-semibold px-2.5 py-1 rounded-md shadow-sm flex items-center gap-1">
               <MapPin className="w-3 h-3" />
-              <span>{item.distanceKm.toFixed(1)} km away</span>
+              <span>{t('itemCard.kmAway', { km: item.distanceKm.toFixed(1) })}</span>
             </div>
           )}
         </div>
@@ -86,7 +83,18 @@ export default function ItemCard({ item, onSelect, onClaimClick, isOwner = false
         {/* Content Section */}
         <div className="p-4 sm:p-5">
           <h3 className="font-bold text-gray-900 text-base sm:text-lg line-clamp-1 group-hover:text-blue-600 transition-colors">
-            {item.title}
+            {/* The title is the card's keyboard entry point; the whole card stays clickable for mouse users. */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(item);
+              }}
+              aria-label={t('itemCard.open', { title: item.title })}
+              className="text-left focus:outline-none focus-visible:underline"
+            >
+              {item.title}
+            </button>
           </h3>
 
           <p className="mt-1.5 text-xs sm:text-sm text-gray-600 line-clamp-2 leading-relaxed">
@@ -111,22 +119,22 @@ export default function ItemCard({ item, onSelect, onClaimClick, isOwner = false
       <div className="px-4 pb-4 pt-1 sm:px-5 sm:pb-5 flex items-center justify-between gap-2">
         <span className="text-xs text-gray-500 flex items-center gap-1">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-          <span>3-Point Verified</span>
+          <span>{t('itemCard.verified')}</span>
         </span>
 
         {isOwner ? (
           <span
-            title="You posted this item, so you can't claim it"
+            title={t('itemCard.postedByYouTitle')}
             className="text-xs font-semibold bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg cursor-default"
           >
-            Posted by you
+            {t('itemCard.postedByYou')}
           </span>
         ) : myClaim ? (
           <span
-            title={myClaim.status === 'rejected' && getRejectionReason(myClaim) ? `Reason: ${getRejectionReason(myClaim)}` : CLAIM_STATUS_LABEL[myClaim.status]}
+            title={myClaim.status === 'rejected' && getRejectionReason(myClaim) ? t('itemCard.reason', { reason: getRejectionReason(myClaim) }) : t(`claimStatus.${myClaim.status}`)}
             className={`text-xs font-semibold px-3 py-1.5 rounded-lg cursor-default ${CLAIM_PILL[myClaim.status]}`}
           >
-            {myClaim.status === 'pending' ? 'Already claimed' : myClaim.status === 'approved' ? 'Claim approved' : 'Claim rejected'}
+            {myClaim.status === 'pending' ? t('itemCard.alreadyClaimed') : myClaim.status === 'approved' ? t('itemCard.claimApproved') : t('itemCard.claimRejected')}
           </span>
         ) : isFound ? (
           <button
@@ -137,7 +145,7 @@ export default function ItemCard({ item, onSelect, onClaimClick, isOwner = false
             }}
             className="text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg transition-colors"
           >
-            Claim Item
+            {t('itemCard.claim')}
           </button>
         ) : (
           <button
@@ -147,11 +155,11 @@ export default function ItemCard({ item, onSelect, onClaimClick, isOwner = false
             }}
             className="text-xs font-semibold bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white px-3 py-1.5 rounded-lg transition-colors"
           >
-            I Found This
+            {t('itemCard.iFoundThis')}
           </button>
         )}
       </div>
-    </div>
+    </article>
   );
 }
 

@@ -9,6 +9,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createToken, setAuthCookie, verifyPassword } from '@/lib/auth';
 import {
+  ACCOUNT_DISABLED_MESSAGE,
+  DbUser,
+  isDisabled,
   findUserByEmail,
   findUserByProviderId,
   toPublicUser,
@@ -16,7 +19,10 @@ import {
   verifyGoogleAccessToken,
 } from '@/lib/users';
 
-function success(user: Parameters<typeof toPublicUser>[0]) {
+const disabled = () =>
+  NextResponse.json({ error: ACCOUNT_DISABLED_MESSAGE, code: 'ACCOUNT_DISABLED' }, { status: 403 });
+
+function success(user: DbUser) {
   const token = createToken(user.id);
   return setAuthCookie(NextResponse.json({ token, user: toPublicUser(user) }), token);
 }
@@ -40,6 +46,7 @@ export async function POST(req: NextRequest) {
         // Same (Google-verified) email registered earlier – link the Google identity.
         const byEmail = await findUserByEmail(identity.email);
         if (byEmail) {
+          if (isDisabled(byEmail)) return disabled();
           user = await touchLastLogin(byEmail.id, {
             auth_provider_id: identity.providerId,
             avatar: byEmail.avatar ?? identity.avatar,
@@ -51,6 +58,7 @@ export async function POST(req: NextRequest) {
           { status: 404 }
         );
       }
+      if (isDisabled(user)) return disabled();
       return success(await touchLastLogin(user.id));
     }
 
@@ -75,6 +83,7 @@ export async function POST(req: NextRequest) {
       if (!verifyPassword(password, user.password_hash)) {
         return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
       }
+      if (isDisabled(user)) return disabled();
       return success(await touchLastLogin(user.id));
     }
 

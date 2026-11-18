@@ -3,7 +3,7 @@
 // sent as `Authorization: Bearer <token>` or the `lf_token` cookie.
 import { NextRequest, NextResponse } from 'next/server';
 import { getTokenFromRequest, verifyToken } from '@/lib/auth';
-import { DbUser, findUserById } from '@/lib/users';
+import { ACCOUNT_DISABLED_MESSAGE, DbUser, findUserById, isDisabled } from '@/lib/users';
 
 export type AuthResult =
   | { user: DbUser; response?: undefined }
@@ -17,7 +17,8 @@ export async function optionalAuth(req: NextRequest): Promise<DbUser | null> {
   const token = getTokenFromRequest(req);
   const payload = token ? verifyToken(token) : null;
   if (!payload) return null;
-  return findUserById(payload.userId).catch(() => null);
+  const user = await findUserById(payload.userId).catch(() => null);
+  return user && !isDisabled(user) ? user : null;
 }
 
 /** Require a valid token; returns a ready-made 401 response when missing/invalid. */
@@ -34,6 +35,10 @@ export async function requireAuth(req: NextRequest): Promise<AuthResult> {
   const user = await findUserById(payload.userId).catch(() => null);
   if (!user) {
     return { response: fail(401, 'User for this token no longer exists.', { code: 'UNAUTHENTICATED' }) };
+  }
+  if (isDisabled(user)) {
+    // 401 so the website's existing "session ended" handling signs the user out.
+    return { response: fail(401, ACCOUNT_DISABLED_MESSAGE, { code: 'ACCOUNT_DISABLED' }) };
   }
   return { user };
 }

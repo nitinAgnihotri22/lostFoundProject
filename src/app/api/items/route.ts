@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       if (!viewer) {
         return NextResponse.json({ success: false, error: 'Sign in to list your own items.' }, { status: 401 });
       }
-      const mine = await withClaimInfo(await listItems({ status: 'all', userId: viewer.id }), viewer.id);
+      const mine = await withClaimInfo(await listItems({ status: 'all', userId: viewer.id, includeHidden: true }), viewer.id);
       return NextResponse.json({ success: true, count: mine.length, data: mine });
     }
 

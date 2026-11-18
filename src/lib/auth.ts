@@ -30,40 +30,81 @@ export interface TokenPayload {
   exp: number;
 }
 
-/** Create a JWT for the given user ID. Expires after 24 hours. */
-export function createToken(userId: string): string {
+/** Sign an HS256 JWT. `scope` selects the signing key, so tokens can't cross between website and admin. */
+function signJwt(claims: Record<string, unknown>, ttlSeconds: number, scope: 'web' | 'admin'): string {
   const now = Math.floor(Date.now() / 1000);
   const header = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = b64url(
-    JSON.stringify({ userId, iat: now, exp: now + TOKEN_TTL_SECONDS })
-  );
-  const signature = crypto
-    .createHmac('sha256', getSecret())
-    .update(`${header}.${payload}`)
-    .digest('base64url');
+  const payload = b64url(JSON.stringify({ ...claims, iat: now, exp: now + ttlSeconds }));
+  const signature = crypto.createHmac('sha256', signingKey(scope)).update(`${header}.${payload}`).digest('base64url');
   return `${header}.${payload}.${signature}`;
 }
 
-/** Verify a JWT and return its payload, or `null` if invalid/expired. */
-export function verifyToken(token: string): TokenPayload | null {
+function verifyJwt<T extends { exp: number }>(token: string, scope: 'web' | 'admin'): T | null {
   try {
     const [header, payload, signature] = token.split('.');
     if (!header || !payload || !signature) return null;
-    const expected = crypto
-      .createHmac('sha256', getSecret())
-      .update(`${header}.${payload}`)
-      .digest();
+    const expected = crypto.createHmac('sha256', signingKey(scope)).update(`${header}.${payload}`).digest();
     const actual = Buffer.from(signature, 'base64url');
-    if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) {
-      return null;
-    }
-    const data = JSON.parse(Buffer.from(payload, 'base64url').toString()) as TokenPayload;
-    if (!data.userId || typeof data.exp !== 'number') return null;
-    if (data.exp <= Math.floor(Date.now() / 1000)) return null;
+    if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) return null;
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString()) as T;
+    if (typeof data.exp !== 'number' || data.exp <= Math.floor(Date.now() / 1000)) return null;
     return data;
   } catch {
     return null;
   }
+}
+
+/** Website tokens keep the original key; admin tokens use a key derived from it. */
+const signingKey = (scope: 'web' | 'admin') => (scope === 'web' ? getSecret() : `${getSecret()}::lostfound-admin`);
+
+/** Create a JWT for the given user ID. Expires after 24 hours. */
+export function createToken(userId: string): string {
+  return signJwt({ userId }, TOKEN_TTL_SECONDS, 'web');
+}
+
+/** Verify a website JWT and return its payload, or `null` if invalid/expired. */
+export function verifyToken(token: string): TokenPayload | null {
+  const data = verifyJwt<TokenPayload>(token, 'web');
+  return data && typeof data.userId === 'string' && data.userId ? data : null;
+}
+
+// -------------------------------------------------------------------
+// Admin panel sessions (separate cookie, separate key, shorter life)
+// -------------------------------------------------------------------
+export const ADMIN_COOKIE = 'lf_admin';
+export const ADMIN_TOKEN_TTL_SECONDS = 8 * 60 * 60; // 8 hours
+
+export interface AdminTokenPayload {
+  adminId: string;
+  /** admin_users.session_version at sign-in; a bump invalidates the token. */
+  sv: number;
+  iat: number;
+  exp: number;
+}
+
+export function createAdminToken(adminId: string, sessionVersion: number): string {
+  return signJwt({ adminId, sv: sessionVersion }, ADMIN_TOKEN_TTL_SECONDS, 'admin');
+}
+
+export function verifyAdminToken(token: string): AdminTokenPayload | null {
+  const data = verifyJwt<AdminTokenPayload>(token, 'admin');
+  return data && typeof data.adminId === 'string' && typeof data.sv === 'number' ? data : null;
+}
+
+export function setAdminCookie(res: NextResponse, token: string): NextResponse {
+  res.cookies.set(ADMIN_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
+    maxAge: ADMIN_TOKEN_TTL_SECONDS,
+  });
+  return res;
+}
+
+export function clearAdminCookie(res: NextResponse): NextResponse {
+  res.cookies.set(ADMIN_COOKIE, '', { httpOnly: true, sameSite: 'strict', path: '/', maxAge: 0 });
+  return res;
 }
 
 /** Read the token from the auth cookie or `Authorization: Bearer` header. */

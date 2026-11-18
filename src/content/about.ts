@@ -1,6 +1,6 @@
 // About Us and Accessibility Statement content. MOCK company details come from siteConfig.
 import type { Lang } from '@/i18n/config';
-import { siteConfig as c } from '@/lib/siteConfig';
+import { siteConfig, type SiteSettings } from '@/lib/siteConfig';
 import type { Doc } from './types';
 
 export interface AboutContent {
@@ -16,7 +16,7 @@ export interface AboutContent {
   ctaBrowse: string;
 }
 
-export function aboutContent(lang: Lang): AboutContent {
+export function aboutContent(lang: Lang, c: SiteSettings = siteConfig): AboutContent {
   if (lang === 'hi') {
     return {
       lead: 'LostFound खोई हुई चीज़ों को उनके मालिकों तक पहुँचाने के लिए एक कम्युनिटी प्लेटफ़ॉर्म है। हम ईमानदार लोगों को आसान तरीका देते हैं, और 3 गुप्त प्रमाणों से यह पक्का करते हैं कि वस्तु सही व्यक्ति तक ही पहुँचे।',
@@ -84,7 +84,7 @@ export function aboutContent(lang: Lang): AboutContent {
   };
 }
 
-export function accessibilityStatement(lang: Lang): Doc {
+export function accessibilityStatement(lang: Lang, c: SiteSettings = siteConfig): Doc {
   const mail = c.accessibilityContactEmail;
   if (lang === 'hi') {
     return {

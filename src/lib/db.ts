@@ -57,17 +57,34 @@ export function mapItemRow(row: any): Item {
       questions && questions.length === 3 ? (questions as [string, string, string]) : undefined,
     createdAt: String(row.created_at),
     resolvedAt: row.resolved_at ? String(row.resolved_at) : undefined,
+    hiddenByAdmin: row.is_hidden === true ? true : undefined,
+    hiddenReason: row.is_hidden === true && row.hidden_reason ? String(row.hidden_reason) : undefined,
   };
 }
 
-export async function listItems(opts: { status?: Item['status'] | 'all'; userId?: string } = {}): Promise<Item[]> {
-  let q = supabase.from('items').select('*').order('created_at', { ascending: false });
-  if (opts.status && opts.status !== 'all') q = q.eq('status', opts.status);
-  if (opts.userId) q = q.eq('user_id', opts.userId);
-  const { data, error } = await q;
-  if (error) throw error;
-  return (data as any[]).map(mapItemRow);
+/**
+ * Items, newest first. Items hidden by an admin are left out unless `includeHidden`
+ * is set (the poster's own list and the admin panel use that).
+ */
+export async function listItems(
+  opts: { status?: Item['status'] | 'all'; userId?: string; includeHidden?: boolean } = {}
+): Promise<Item[]> {
+  const build = (filterHidden: boolean) => {
+    let q = supabase.from('items').select('*').order('created_at', { ascending: false });
+    if (opts.status && opts.status !== 'all') q = q.eq('status', opts.status);
+    if (opts.userId) q = q.eq('user_id', opts.userId);
+    if (filterHidden) q = q.eq('is_hidden', false);
+    return q;
+  };
+  let res = await build(!opts.includeHidden);
+  // is_hidden arrives with migration 07 – before that nothing can be hidden anyway.
+  if (res.error && !opts.includeHidden && isMissingColumn(res.error)) res = await build(false);
+  if (res.error) throw res.error;
+  return (res.data as any[]).map(mapItemRow);
 }
+
+/** Postgres "undefined column" (42703) or PostgREST schema-cache miss. */
+const isMissingColumn = (e: any) => e?.code === '42703' || isMissingSchema(e);
 
 export async function getItem(id: string): Promise<Item | null> {
   const { data, error } = await supabase.from('items').select('*').eq('id', id).maybeSingle();

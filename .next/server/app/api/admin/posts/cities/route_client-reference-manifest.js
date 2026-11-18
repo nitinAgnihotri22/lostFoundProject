@@ -1,0 +1,1 @@
+globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/admin/posts/cities/route"]={"moduleLoading":{"prefix":"/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"/Users/apple/Desktop/Nitin/LostFound/src/app/api/admin/posts/cities/route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};

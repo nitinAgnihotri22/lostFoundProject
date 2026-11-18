@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import { Compass } from 'lucide-react';
 import { useI18n } from '@/i18n/LanguageProvider';
-import { siteConfig } from '@/lib/siteConfig';
 import type { TKey } from '@/i18n/translate';
 import LanguageSwitcher from './LanguageSwitcher';
 
@@ -33,7 +32,7 @@ const GROUPS: { title: TKey; links: { href: string; label: TKey }[] }[] = [
   },
 ];
 
-export default function SiteFooter() {
+export default function SiteFooter({ companyName }: { companyName: string }) {
   const { t } = useI18n();
   return (
     <footer className="mt-auto bg-white border-t border-gray-200 print:hidden">
@@ -69,7 +68,7 @@ export default function SiteFooter() {
       </div>
       <div className="border-t border-gray-100">
         <p className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-xs text-gray-500">
-          {t('footer.rights', { year: new Date().getFullYear(), company: siteConfig.company.legalName })}
+          {t('footer.rights', { year: new Date().getFullYear(), company: companyName })}
         </p>
       </div>
     </footer>

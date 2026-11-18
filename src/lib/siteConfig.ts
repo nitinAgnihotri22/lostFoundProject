@@ -1,11 +1,31 @@
 // Site-wide company and legal details.
 // -------------------------------------------------------------------
-// MOCK DATA: every value marked "TODO" is a placeholder. Replace them
-// before launch – the Privacy Policy, Terms, Contact, About and
-// Accessibility pages all read from here, so one edit updates them all.
+// MOCK DATA: every value marked "TODO" is a placeholder. These are the
+// defaults; a super admin can override them in /admin → Pages → Company
+// details (saved in the site_settings table), which takes priority.
 // -------------------------------------------------------------------
 
-export const siteConfig = {
+/** The part of the config a super admin can edit in /admin/pages (stored in site_settings). */
+export interface SiteSettings {
+  company: {
+    legalName: string;
+    cin: string;
+    gstin: string;
+    address: { line1: string; line2: string; city: string; state: string; postalCode: string; country: string };
+  };
+  contact: { email: string; phone: string; hours: { en: string; hi: string } };
+  grievanceOfficer: { name: string; email: string; phone: string };
+  accessibilityContactEmail: string;
+  jurisdiction: { en: string; hi: string };
+  legalLastUpdated: string;
+}
+
+export interface SiteConfig extends SiteSettings {
+  name: string;
+  url: string;
+}
+
+export const siteConfig: SiteConfig = {
   name: 'LostFound',
   /** Public URL, used by sitemap.xml, robots.txt and canonical links. */
   url: (process.env.NEXT_PUBLIC_SITE_URL || 'https://lostfound.example.com').replace(/\/$/, ''),
@@ -44,9 +64,9 @@ export const siteConfig = {
 
   /** Shown as "Last updated" on the legal pages. Update whenever the text changes. */
   legalLastUpdated: '2026-11-18',
-} as const;
+};
 
-export const formattedAddress = () => {
-  const a = siteConfig.company.address;
-  return `${a.line1}, ${a.line2}, ${a.city}, ${a.state} ${a.postalCode}, ${a.country}`;
+export const formattedAddress = (c: SiteSettings = siteConfig) => {
+  const a = c.company.address;
+  return [a.line1, a.line2, a.city, `${a.state} ${a.postalCode}`.trim(), a.country].filter((p) => p && p.trim()).join(', ');
 };

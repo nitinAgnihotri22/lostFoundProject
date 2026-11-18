@@ -4,7 +4,6 @@ import { getServerT } from '@/i18n/server';
 import { LanguageProvider } from '@/i18n/LanguageProvider';
 import { siteConfig } from '@/lib/siteConfig';
 import { a11yBootScript } from '@/lib/a11ySettings';
-import SiteFooter from '@/components/SiteFooter';
 import AccessibilityWidget from '@/components/AccessibilityWidget';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -52,7 +51,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         <LanguageProvider initialLang={lang}>
           {children}
-          <SiteFooter />
           <AccessibilityWidget />
         </LanguageProvider>
       </body>

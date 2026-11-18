@@ -22,7 +22,16 @@ export interface DbUser {
   last_login_at: string | null;
   created_at: string;
   updated_at: string | null;
+  /** Added by migration 07 – undefined on older databases (treated as active). */
+  status?: 'active' | 'disabled';
+  disabled_reason?: string | null;
 }
+
+/** A disabled account can't sign in, and its existing sessions stop working immediately. */
+export const isDisabled = (u: Pick<DbUser, 'status'>) => u.status === 'disabled';
+
+export const ACCOUNT_DISABLED_MESSAGE =
+  'This account has been disabled. Please contact support if you think this is a mistake.';
 
 /** Shape returned to the browser – never includes password_hash. */
 export interface PublicUser {

@@ -1,10 +1,10 @@
 // Privacy Policy – written for India (DPDP Act 2023, IT Act 2000, IT Rules 2011/2021).
 // MOCK: company details come from src/lib/siteConfig.ts. Have a lawyer review before launch.
 import type { Lang } from '@/i18n/config';
-import { formattedAddress, siteConfig as c } from '@/lib/siteConfig';
+import { formattedAddress, siteConfig, type SiteSettings } from '@/lib/siteConfig';
 import type { Doc } from './types';
 
-export function privacyPolicy(lang: Lang): Doc {
+export function privacyPolicy(lang: Lang, c: SiteSettings = siteConfig): Doc {
   const co = c.company.legalName;
   const g = c.grievanceOfficer;
 
@@ -16,7 +16,7 @@ export function privacyPolicy(lang: Lang): Doc {
       sections: [
         { id: 'who-we-are', title: '1. हम कौन हैं', blocks: [
           `डिजिटल व्यक्तिगत डेटा संरक्षण अधिनियम 2023 ("DPDP अधिनियम") के तहत ${co} आपके व्यक्तिगत डेटा का "डेटा फ़िड्यूशरी" है।`,
-          { dl: [['पता', formattedAddress()], ['ईमेल', c.contact.email], ['फ़ोन', c.contact.phone]] },
+          { dl: [['पता', formattedAddress(c)], ['ईमेल', c.contact.email], ['फ़ोन', c.contact.phone]] },
         ] },
         { id: 'data-we-collect', title: '2. हम कौन-सा डेटा एकत्र करते हैं', blocks: [
           [
@@ -101,7 +101,7 @@ export function privacyPolicy(lang: Lang): Doc {
         ] },
         { id: 'grievance', title: '13. शिकायत अधिकारी', blocks: [
           'आईटी नियम 2021 और DPDP अधिनियम के अनुसार:',
-          { dl: [['नाम', g.name], ['ईमेल', g.email], ['फ़ोन', g.phone], ['पता', formattedAddress()]] },
+          { dl: [['नाम', g.name], ['ईमेल', g.email], ['फ़ोन', g.phone], ['पता', formattedAddress(c)]] },
           'हम 24 घंटे के भीतर शिकायत की पावती देंगे और 15 दिनों के भीतर उसका समाधान करेंगे। यदि आप हमारे जवाब से संतुष्ट नहीं हैं, तो आप भारत के डेटा संरक्षण बोर्ड से संपर्क कर सकते हैं।',
         ] },
         { id: 'changes', title: '14. इस नीति में बदलाव', blocks: [
@@ -118,7 +118,7 @@ export function privacyPolicy(lang: Lang): Doc {
     sections: [
       { id: 'who-we-are', title: '1. Who we are', blocks: [
         `${co} is the "Data Fiduciary" for your personal data under the Digital Personal Data Protection Act, 2023 ("DPDP Act").`,
-        { dl: [['Address', formattedAddress()], ['Email', c.contact.email], ['Phone', c.contact.phone]] },
+        { dl: [['Address', formattedAddress(c)], ['Email', c.contact.email], ['Phone', c.contact.phone]] },
       ] },
       { id: 'data-we-collect', title: '2. Data we collect', blocks: [
         [
@@ -203,7 +203,7 @@ export function privacyPolicy(lang: Lang): Doc {
       ] },
       { id: 'grievance', title: '13. Grievance Officer', blocks: [
         'As required by the IT Rules 2021 and the DPDP Act:',
-        { dl: [['Name', g.name], ['Email', g.email], ['Phone', g.phone], ['Address', formattedAddress()]] },
+        { dl: [['Name', g.name], ['Email', g.email], ['Phone', g.phone], ['Address', formattedAddress(c)]] },
         'We acknowledge complaints within 24 hours and resolve them within 15 days. If you are not satisfied with our response, you may approach the Data Protection Board of India.',
       ] },
       { id: 'changes', title: '14. Changes to this policy', blocks: [

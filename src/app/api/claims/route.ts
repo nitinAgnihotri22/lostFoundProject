@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const scope = request.nextUrl.searchParams.get('scope') ?? 'all';
-    const myItems = scope === 'mine' ? [] : await listItems({ status: 'all', userId: user.id });
+    const myItems = scope === 'mine' ? [] : await listItems({ status: 'all', userId: user.id, includeHidden: true });
     const [mine, received] = await Promise.all([
       scope === 'received' ? [] : listClaimsByClaimant(user.id),
       scope === 'mine' ? [] : listClaimsForItems(myItems.map((i) => i.id)),
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const phone = str(body.phone || body.claimantPhone).slice(0, 40) || user.phone || '';
 
     const item = await getItem(itemId);
-    if (!item) return fail(404, 'Item not found.');
+    if (!item || item.hiddenByAdmin) return fail(404, 'Item not found.');
     if (item.type !== 'found') {
       return fail(400, 'Only found items can be claimed. If you found a lost item, message its owner instead.', { code: 'NOT_CLAIMABLE' });
     }

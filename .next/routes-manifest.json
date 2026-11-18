@@ -23,6 +23,46 @@
   },
   "dynamicRoutes": [
     {
+      "page": "/api/admin/admins/[id]",
+      "regex": "^/api/admin/admins/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/admins/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/admin/messages/[id]",
+      "regex": "^/api/admin/messages/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/messages/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/admin/pages/[slug]",
+      "regex": "^/api/admin/pages/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPslug": "nxtPslug"
+      },
+      "namedRegex": "^/api/admin/pages/(?<nxtPslug>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/admin/posts/[id]",
+      "regex": "^/api/admin/posts/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/posts/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/admin/users/[id]",
+      "regex": "^/api/admin/users/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/users/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/api/claims/[id]",
       "regex": "^/api/claims/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -77,6 +117,138 @@
       "regex": "^/accessibility(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/accessibility(?:/)?$"
+    },
+    {
+      "page": "/admin",
+      "regex": "^/admin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin(?:/)?$"
+    },
+    {
+      "page": "/admin/account",
+      "regex": "^/admin/account(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/account(?:/)?$"
+    },
+    {
+      "page": "/admin/admins",
+      "regex": "^/admin/admins(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/admins(?:/)?$"
+    },
+    {
+      "page": "/admin/audit",
+      "regex": "^/admin/audit(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/audit(?:/)?$"
+    },
+    {
+      "page": "/admin/login",
+      "regex": "^/admin/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/login(?:/)?$"
+    },
+    {
+      "page": "/admin/messages",
+      "regex": "^/admin/messages(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/messages(?:/)?$"
+    },
+    {
+      "page": "/admin/pages",
+      "regex": "^/admin/pages(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/pages(?:/)?$"
+    },
+    {
+      "page": "/admin/posts",
+      "regex": "^/admin/posts(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/posts(?:/)?$"
+    },
+    {
+      "page": "/admin/users",
+      "regex": "^/admin/users(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/users(?:/)?$"
+    },
+    {
+      "page": "/api/admin/account",
+      "regex": "^/api/admin/account(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/account(?:/)?$"
+    },
+    {
+      "page": "/api/admin/admins",
+      "regex": "^/api/admin/admins(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/admins(?:/)?$"
+    },
+    {
+      "page": "/api/admin/audit",
+      "regex": "^/api/admin/audit(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/audit(?:/)?$"
+    },
+    {
+      "page": "/api/admin/auth/login",
+      "regex": "^/api/admin/auth/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/auth/login(?:/)?$"
+    },
+    {
+      "page": "/api/admin/auth/logout",
+      "regex": "^/api/admin/auth/logout(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/auth/logout(?:/)?$"
+    },
+    {
+      "page": "/api/admin/auth/me",
+      "regex": "^/api/admin/auth/me(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/auth/me(?:/)?$"
+    },
+    {
+      "page": "/api/admin/messages",
+      "regex": "^/api/admin/messages(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/messages(?:/)?$"
+    },
+    {
+      "page": "/api/admin/pages",
+      "regex": "^/api/admin/pages(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/pages(?:/)?$"
+    },
+    {
+      "page": "/api/admin/posts",
+      "regex": "^/api/admin/posts(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/posts(?:/)?$"
+    },
+    {
+      "page": "/api/admin/posts/cities",
+      "regex": "^/api/admin/posts/cities(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/posts/cities(?:/)?$"
+    },
+    {
+      "page": "/api/admin/settings",
+      "regex": "^/api/admin/settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/settings(?:/)?$"
+    },
+    {
+      "page": "/api/admin/stats",
+      "regex": "^/api/admin/stats(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/stats(?:/)?$"
+    },
+    {
+      "page": "/api/admin/users",
+      "regex": "^/api/admin/users(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/users(?:/)?$"
     },
     {
       "page": "/api/auth/login",

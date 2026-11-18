@@ -84,6 +84,8 @@ export default function AuthModal({
       if (err instanceof AuthError && err.code === 'USER_NOT_FOUND') {
         setIsRegister(true);
         setError(t('auth.noAccountFound'));
+      } else if (err instanceof AuthError && err.code === 'ACCOUNT_DISABLED') {
+        setError(t('errors.accountDisabled'));
       } else if (err instanceof AuthError && err.code === 'USER_EXISTS') {
         setIsRegister(false);
         setError(t('auth.exists'));

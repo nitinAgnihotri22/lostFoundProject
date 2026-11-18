@@ -1,16 +1,16 @@
 {
-  "app/page.tsx -> @/components/MapComponent": {
+  "app/(site)/page.tsx -> @/components/MapComponent": {
     "id": 1505,
     "files": [
-      "static/chunks/d0deef33.59f66eb64a859d22.js",
-      "static/chunks/505.4958a392d669576c.js"
+      "static/chunks/d0deef33.ecd94af9d4d1e118.js",
+      "static/chunks/1505.b7d5dedea61d14cb.js"
     ]
   },
   "components/ReportItemModal.tsx -> ./MapComponent": {
     "id": 1505,
     "files": [
-      "static/chunks/d0deef33.59f66eb64a859d22.js",
-      "static/chunks/505.4958a392d669576c.js"
+      "static/chunks/d0deef33.ecd94af9d4d1e118.js",
+      "static/chunks/1505.b7d5dedea61d14cb.js"
     ]
   }
 }

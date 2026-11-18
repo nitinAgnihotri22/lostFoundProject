@@ -81,6 +81,7 @@ export const en = {
     loadItems: 'Could not load items.',
     googleFailed: 'Google sign-in failed. Please try again.',
     sessionExpired: 'Your session has expired. Please sign in again to continue.',
+    accountDisabled: 'This account has been disabled. Please contact support if you think this is a mistake.',
     gpsFailed: 'Unable to retrieve GPS position. Please check your browser permissions.',
   },
 
@@ -429,6 +430,7 @@ export const en = {
   },
 
   profile: {
+    hiddenByAdmin: 'Removed by moderator',
     messages: 'Messages',
     googleAccount: 'Google account',
     emailAccount: 'Email account',

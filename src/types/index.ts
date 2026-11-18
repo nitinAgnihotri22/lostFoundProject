@@ -43,6 +43,9 @@ export interface Item {
   claimCount?: number;
   /** The viewer's own claim on this item, if any (filled in by the API). */
   myClaim?: Claim;
+  /** Removed from the website by an admin (only the poster still sees it). */
+  hiddenByAdmin?: boolean;
+  hiddenReason?: string;
 }
 
 /** GET /api/items/{id} – item plus what the viewer is allowed to see. */

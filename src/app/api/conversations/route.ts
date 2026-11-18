@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const itemId = str(body.itemId);
     if (!itemId) return fail(400, 'itemId is required.');
     const item = await getItem(itemId);
-    if (!item) return fail(404, 'Item not found.');
+    if (!item || item.hiddenByAdmin) return fail(404, 'Item not found.');
 
     const isPoster = item.userId === user.id;
     let recipientId = str(body.recipientId);

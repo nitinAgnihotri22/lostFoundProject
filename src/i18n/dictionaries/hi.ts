@@ -80,6 +80,7 @@ export const hi: Dictionary = {
     itemNotOpen: 'इस वस्तु पर अब दावे स्वीकार नहीं किए जा रहे हैं।',
     loadItems: 'वस्तुएँ लोड नहीं हो सकीं।',
     googleFailed: 'Google से साइन इन नहीं हो सका। कृपया फिर से कोशिश करें।',
+    accountDisabled: 'यह खाता बंद कर दिया गया है। अगर आपको लगता है कि यह गलती है, तो कृपया सहायता टीम से संपर्क करें।',
     sessionExpired: 'आपका सत्र समाप्त हो गया है। जारी रखने के लिए कृपया फिर से साइन इन करें।',
     gpsFailed: 'GPS स्थान नहीं मिल सका। कृपया अपने ब्राउज़र की अनुमतियाँ जाँचें।',
   },
@@ -429,6 +430,7 @@ export const hi: Dictionary = {
   },
 
   profile: {
+    hiddenByAdmin: 'मॉडरेटर ने हटाया',
     messages: 'संदेश',
     googleAccount: 'Google खाता',
     emailAccount: 'ईमेल खाता',

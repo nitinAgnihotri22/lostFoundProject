@@ -32,7 +32,7 @@ async function request<T = any>(path: string, opts: Opts = {}): Promise<T> {
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (res.status === 401 && typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
+        window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT, { detail: { code: json.code } }));
       }
       throw new ApiError(json.error || `Request failed (${res.status})`, res.status, json.code, json.data, json.field);
     }

@@ -1,0 +1,1 @@
+globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/admin/auth/logout/route"]={"moduleLoading":{"prefix":"/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"/Users/apple/Desktop/Nitin/LostFound/src/app/api/admin/auth/logout/route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};

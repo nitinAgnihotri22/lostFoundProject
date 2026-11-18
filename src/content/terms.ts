@@ -1,10 +1,10 @@
 // Terms & Conditions – written for India (IT Act 2000, IT Intermediary Rules 2021).
 // MOCK: company details come from src/lib/siteConfig.ts. Have a lawyer review before launch.
 import type { Lang } from '@/i18n/config';
-import { formattedAddress, siteConfig as c } from '@/lib/siteConfig';
+import { formattedAddress, siteConfig, type SiteSettings } from '@/lib/siteConfig';
 import type { Doc } from './types';
 
-export function termsOfService(lang: Lang): Doc {
+export function termsOfService(lang: Lang, c: SiteSettings = siteConfig): Doc {
   const co = c.company.legalName;
   const g = c.grievanceOfficer;
 
@@ -82,7 +82,7 @@ export function termsOfService(lang: Lang): Doc {
           'हम इन शर्तों को समय-समय पर बदल सकते हैं। बदलाव के बाद LostFound का उपयोग जारी रखने का अर्थ है कि आप नई शर्तें स्वीकार करते हैं।',
         ] },
         { id: 'contact', title: '15. संपर्क और शिकायत अधिकारी', blocks: [
-          { dl: [['कंपनी', co], ['पता', formattedAddress()], ['ईमेल', c.contact.email], ['शिकायत अधिकारी', `${g.name} – ${g.email}`]] },
+          { dl: [['कंपनी', co], ['पता', formattedAddress(c)], ['ईमेल', c.contact.email], ['शिकायत अधिकारी', `${g.name} – ${g.email}`]] },
         ] },
       ],
     };
@@ -161,7 +161,7 @@ export function termsOfService(lang: Lang): Doc {
         'We may change these Terms from time to time. Continuing to use LostFound after a change means you accept the new Terms.',
       ] },
       { id: 'contact', title: '15. Contact and Grievance Officer', blocks: [
-        { dl: [['Company', co], ['Address', formattedAddress()], ['Email', c.contact.email], ['Grievance Officer', `${g.name} – ${g.email}`]] },
+        { dl: [['Company', co], ['Address', formattedAddress(c)], ['Email', c.contact.email], ['Grievance Officer', `${g.name} – ${g.email}`]] },
       ] },
     ],
   };

@@ -15,6 +15,8 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     const viewer = await optionalAuth(request);
     const item = await getItem(id);
     if (!item) return fail(404, 'Item not found');
+    // Hidden by an admin: gone for everyone except the poster.
+    if (item.hiddenByAdmin && viewer?.id !== item.userId) return fail(404, 'Item not found');
 
     const claims = await listClaimsForItem(item.id);
     const isOwner = !!viewer && viewer.id === item.userId;

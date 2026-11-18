@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const { user } = auth;
 
   try {
-    const posted = await listItems({ status: 'all', userId: user.id });
+    const posted = await listItems({ status: 'all', userId: user.id, includeHidden: true });
     const [postedItems, myClaims, receivedClaims, unreadMessages] = await Promise.all([
       withClaimInfo(posted, user.id),
       listClaimsByClaimant(user.id),

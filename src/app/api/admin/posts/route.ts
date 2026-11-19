@@ -7,7 +7,8 @@
 //   Rejecting needs a reason; the poster sees it.
 //   Hidden posts disappear from the website (list, detail, claims, new chats);
 //   the poster still sees them in their profile, marked "Removed by moderator".
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
+import { notifyPostsReviewed } from '@/lib/notifications';
 import { adminFail, adminRouteError, audit, requireAdmin } from '@/lib/admin/server';
 import { listPosts, reviewPosts, setPostsHidden, PostFilters } from '@/lib/admin/data';
 
@@ -63,6 +64,14 @@ export async function PATCH(req: NextRequest) {
       if (action === 'reject' && !reason) return adminFail(400, 'Give a reason for rejecting (the poster sees it).', { field: 'reason' });
       const changed = await reviewPosts(ids, action, reason, auth.admin);
       await audit(auth.admin, action === 'approve' ? 'post.approve' : 'post.reject', { type: 'item', id: ids.length === 1 ? ids[0] : undefined }, { ids, reason, changed: changed.length }, req);
+      // Email the posters after responding, so the reviewer isn't kept waiting.
+      if (changed.length) {
+        const admin = auth.admin;
+        after(async () => {
+          const result = await notifyPostsReviewed(changed, action, reason);
+          await audit(admin, 'email.review_notice', { type: 'item' }, { decision: action, ...result });
+        });
+      }
       return NextResponse.json({ success: true, data: { changed: changed.length, skipped: ids.length - changed.length } });
     }
 

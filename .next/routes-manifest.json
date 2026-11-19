@@ -113,12 +113,6 @@
       "namedRegex": "^/about(?:/)?$"
     },
     {
-      "page": "/accessibility",
-      "regex": "^/accessibility(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/accessibility(?:/)?$"
-    },
-    {
       "page": "/admin",
       "regex": "^/admin(?:/)?$",
       "routeKeys": {},
@@ -279,6 +273,18 @@
       "regex": "^/api/auth/me(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/auth/me(?:/)?$"
+    },
+    {
+      "page": "/api/auth/phone",
+      "regex": "^/api/auth/phone(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/auth/phone(?:/)?$"
+    },
+    {
+      "page": "/api/auth/phone/complete",
+      "regex": "^/api/auth/phone/complete(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/auth/phone/complete(?:/)?$"
     },
     {
       "page": "/api/auth/register",

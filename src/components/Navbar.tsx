@@ -94,7 +94,7 @@ export default function Navbar({
                 />
                 <div className="hidden md:block text-left">
                   <div className="text-xs font-bold text-gray-800 leading-tight">{currentUser.name}</div>
-                  <div className="text-[0.6875rem] text-gray-500 truncate max-w-[120px]">{currentUser.email}</div>
+                  <div className="text-[0.6875rem] text-gray-500 truncate max-w-[120px]">{currentUser.email ?? currentUser.phone}</div>
                 </div>
                 </Link>
                 <button

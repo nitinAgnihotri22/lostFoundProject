@@ -85,3 +85,32 @@ export async function fetchCurrentUser(): Promise<User | null> {
 export async function logoutRequest(): Promise<void> {
   await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
 }
+
+// -------------------------------------------------------------------
+// Phone OTP
+// -------------------------------------------------------------------
+export type PhoneSignInResult =
+  | { kind: 'signed_in'; user: User }
+  | { kind: 'needs_profile'; signupToken: string; phone: string };
+
+/** After Supabase verifyOtp: sign in, or learn that this number is new. */
+export function signInWithVerifiedPhone(accessToken: string): Promise<PhoneSignInResult> {
+  return trackRequest(async () => {
+    const res = await fetch('/api/auth/phone', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new AuthError(data.error || 'Request failed', res.status, data.code);
+    return data.needsProfile
+      ? { kind: 'needs_profile' as const, signupToken: String(data.signupToken), phone: String(data.phone) }
+      : { kind: 'signed_in' as const, user: data.user as User };
+  }, SIGNING_IN);
+}
+
+/** New phone number: create the account with a name and optional email. */
+export async function completePhoneSignup(input: { signupToken: string; name: string; email?: string }): Promise<User> {
+  return (await post('/api/auth/phone/complete', input, CREATING)).user;
+}

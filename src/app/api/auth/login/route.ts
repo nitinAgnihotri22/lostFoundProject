@@ -46,6 +46,13 @@ export async function POST(req: NextRequest) {
         // Same (Google-verified) email registered earlier – link the Google identity.
         const byEmail = await findUserByEmail(identity.email);
         if (byEmail) {
+          // A phone account's email was typed, never verified – don't let Google take it over.
+          if (byEmail.role_type === 'phone') {
+            return NextResponse.json(
+              { error: 'This email is linked with another account.', code: 'EMAIL_LINKED' },
+              { status: 409 }
+            );
+          }
           if (isDisabled(byEmail)) return disabled();
           user = await touchLastLogin(byEmail.id, {
             auth_provider_id: identity.providerId,
@@ -72,6 +79,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           { error: 'No account found for this email', code: 'USER_NOT_FOUND' },
           { status: 404 }
+        );
+      }
+      if (user.role_type === 'phone') {
+        return NextResponse.json(
+          { error: 'This account uses phone sign-in. Please continue with your phone number.', code: 'USE_PHONE' },
+          { status: 401 }
         );
       }
       if (user.role_type === 'social' || !user.password_hash) {

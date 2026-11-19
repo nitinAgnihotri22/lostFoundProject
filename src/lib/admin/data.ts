@@ -284,10 +284,11 @@ export async function reviewPosts(ids: string[], decision: 'approve' | 'reject',
 export interface AdminWebUser {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string;
   avatar?: string;
-  signIn: 'google' | 'email';
+  signIn: 'google' | 'email' | 'phone';
+  phoneVerified: boolean;
   status: 'active' | 'disabled';
   disabledAt?: string;
   disabledReason?: string;
@@ -322,10 +323,11 @@ async function decorateUsers(rows: any[]): Promise<AdminWebUser[]> {
   return rows.map((r) => ({
     id: String(r.id),
     name: String(r.name),
-    email: String(r.email),
-    phone: r.phone ?? undefined,
+    email: r.email ? String(r.email) : undefined,
+    phone: r.phone_e164 ?? r.phone ?? undefined,
     avatar: r.avatar ?? undefined,
-    signIn: r.role_type === 'social' ? 'google' : 'email',
+    signIn: r.role_type === 'social' ? 'google' : r.role_type === 'phone' ? 'phone' : 'email',
+    phoneVerified: !!r.phone_e164,
     status: r.status === 'disabled' ? 'disabled' : 'active',
     disabledAt: r.disabled_at ?? undefined,
     disabledReason: r.disabled_reason ?? undefined,
@@ -337,7 +339,7 @@ async function decorateUsers(rows: any[]): Promise<AdminWebUser[]> {
   }));
 }
 
-const USER_COLUMNS = 'id,name,email,phone,avatar,role_type,status,disabled_at,disabled_reason,created_by_admin,last_login_at,created_at';
+const USER_COLUMNS = 'id,name,email,phone,phone_e164,avatar,role_type,status,disabled_at,disabled_reason,created_by_admin,last_login_at,created_at';
 
 export async function listWebUsers(f: UserFilters): Promise<Page<AdminWebUser>> {
   const { p, size, from, to } = pageRange(f.page ?? 1, f.pageSize ?? 25);

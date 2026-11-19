@@ -30,7 +30,6 @@ export async function PUT(req: NextRequest) {
     for (const [field, value] of [
       ['contact.email', s.contact.email],
       ['grievanceOfficer.email', s.grievanceOfficer.email],
-      ['accessibilityContactEmail', s.accessibilityContactEmail],
     ] as const) {
       if (!EMAIL_RE.test(value)) return adminFail(400, `Enter a valid email for ${field}.`, { field });
     }

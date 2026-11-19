@@ -98,11 +98,12 @@ export interface ClaimWithItem extends Claim {
 export interface User {
   id: string;
   name: string;
-  email: string;
+  /** Optional: phone-OTP accounts may not have one. */
+  email?: string;
   phone?: string;
   avatar?: string;
-  roleSource?: 'google' | 'normal_register';
-  roleType?: 'social' | 'email';
+  roleSource?: 'google' | 'normal_register' | 'phone';
+  roleType?: 'social' | 'email' | 'phone';
 }
 
 export interface ConversationParticipant {

@@ -112,7 +112,15 @@ export default function HomePage() {
         loadItems(true);
       } catch (e) {
         console.error('Google sign-in failed:', e);
-        alert(tRef.current(e instanceof AuthError && e.code === 'ACCOUNT_DISABLED' ? 'errors.accountDisabled' : 'errors.googleFailed'));
+        alert(
+          tRef.current(
+            e instanceof AuthError && e.code === 'ACCOUNT_DISABLED'
+              ? 'errors.accountDisabled'
+              : e instanceof AuthError && e.code === 'EMAIL_LINKED'
+                ? 'auth.emailLinkedGoogle'
+                : 'errors.googleFailed'
+          )
+        );
       } finally {
         // Our own 24h token now represents the session; drop Supabase's copy.
         await supabaseBrowser.auth.signOut({ scope: 'local' });

@@ -6,6 +6,7 @@ import { supabaseBrowser } from '@/lib/supabaseBrowser';
 import { AuthError, loginWithEmail, registerWithEmail } from '@/lib/authClient';
 import { trackRequest } from '@/lib/loading';
 import { X } from 'lucide-react';
+import PhoneAuth from './PhoneAuth';
 import { useI18n } from '@/i18n/LanguageProvider';
 
 interface AuthModalProps {
@@ -33,13 +34,6 @@ export default function AuthModal({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  // Phone OTP form fields
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [otpStep, setOtpStep] = useState<'input_phone' | 'input_otp'>('input_phone');
-  const [otpCode, setOtpCode] = useState('');
-  const [phoneName, setPhoneName] = useState('');
-  const [isSendingOtp, setIsSendingOtp] = useState(false);
 
   if (!isOpen) return null;
 
@@ -84,6 +78,9 @@ export default function AuthModal({
       if (err instanceof AuthError && err.code === 'USER_NOT_FOUND') {
         setIsRegister(true);
         setError(t('auth.noAccountFound'));
+      } else if (err instanceof AuthError && err.code === 'USE_PHONE') {
+        setMethod('phone');
+        setError(t('auth.usePhone'));
       } else if (err instanceof AuthError && err.code === 'ACCOUNT_DISABLED') {
         setError(t('errors.accountDisabled'));
       } else if (err instanceof AuthError && err.code === 'USER_EXISTS') {
@@ -95,36 +92,6 @@ export default function AuthModal({
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // 3. Phone Number & OTP Submit (still a local mock – not wired to the API yet)
-  const handleSendOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!phoneNumber.trim() || phoneNumber.length < 8) {
-      alert(t('auth.validPhone'));
-      return;
-    }
-    setIsSendingOtp(true);
-    setTimeout(() => {
-      setIsSendingOtp(false);
-      setOtpStep('input_otp');
-    }, 600);
-  };
-
-  const handleVerifyOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otpCode.trim() || otpCode.length < 4) {
-      alert(t('auth.validOtp'));
-      return;
-    }
-    const displayName = phoneName.trim() || t('auth.phoneUser', { digits: phoneNumber.slice(-4) });
-    finish({
-      id: `user-phone-${Date.now()}`,
-      name: displayName,
-      email: `${phoneNumber.replace(/[^0-9]/g, '')}@phone.lostfound`,
-      phone: phoneNumber.trim(),
-      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}`,
-    });
   };
 
   return (
@@ -201,23 +168,16 @@ export default function AuthModal({
             </form>
           )}
           {method === 'phone' && (
-            <form onSubmit={otpStep === 'input_phone' ? handleSendOtp : handleVerifyOtp} className="space-y-4">
-              {otpStep === 'input_phone' && (
-                <>
-                  <input type="tel" autoComplete="tel" placeholder={t('auth.phoneNumber')} aria-label={t('auth.phoneNumber')} value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="w-full border rounded px-3 py-2" required />
-                  <button type="submit" disabled={isSendingOtp} className="w-full py-2 bg-blue-600 text-white rounded">
-                    {isSendingOtp ? t('auth.sending') : t('auth.sendOtp')}
-                  </button>
-                </>
-              )}
-              {otpStep === 'input_otp' && (
-                <>
-                  <input type="text" inputMode="numeric" autoComplete="one-time-code" placeholder={t('auth.otp')} aria-label={t('auth.otp')} value={otpCode} onChange={e => setOtpCode(e.target.value)} className="w-full border rounded px-3 py-2" required />
-                  <input type="text" placeholder={t('auth.displayName')} aria-label={t('auth.displayName')} value={phoneName} onChange={e => setPhoneName(e.target.value)} className="w-full border rounded px-3 py-2" />
-                  <button type="submit" className="w-full py-2 bg-blue-600 text-white rounded">{t('auth.verifyOtp')}</button>
-                </>
-              )}
-            </form>
+            <PhoneAuth
+              onSignedIn={finish}
+              onUseEmailAccount={(em) => {
+                // "Email linked with another account" → sign in to that account instead.
+                setMethod('email');
+                setIsRegister(false);
+                setEmail(em);
+                setError(t('auth.signInWithEmailHint'));
+              }}
+            />
           )}
         </div>
       </div>

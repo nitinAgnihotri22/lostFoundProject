@@ -11,10 +11,11 @@ import CreateUserDialog from './CreateUserDialog';
 interface WebUser {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string;
   avatar?: string;
-  signIn: 'google' | 'email';
+  signIn: 'google' | 'email' | 'phone';
+  phoneVerified: boolean;
   status: 'active' | 'disabled';
   disabledAt?: string;
   disabledReason?: string;
@@ -174,12 +175,12 @@ export default function UsersView({ initial }: { initial: { search?: string; sta
                         )}
                         <div className="min-w-0">
                           <p className="font-semibold text-slate-900 truncate">{u.name}</p>
-                          <p className="text-xs text-slate-500 truncate">{u.email}{u.phone ? ` · ${u.phone}` : ''}</p>
+                          <p className="text-xs text-slate-500 truncate">{u.email ?? 'no email'}{u.phone ? ` · ${u.phone}${u.phoneVerified ? ' ✓' : ''}` : ''}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge>{u.signIn === 'google' ? 'Google' : 'Email'}</Badge>
+                      <Badge>{u.signIn === 'google' ? 'Google' : u.signIn === 'phone' ? 'Phone OTP' : 'Email'}</Badge>
                       {u.createdByAdmin && <span className="ml-1"><Badge tone="purple">admin-created</Badge></span>}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">

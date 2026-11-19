@@ -69,23 +69,6 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
-// Validate ../../src/app/(site)/accessibility/page.tsx
-{
-  type __IsExpected<Specific extends AppPageConfig<"/accessibility">> = Specific
-  const handler = {} as typeof import("../../src/app/(site)/accessibility/page.js")
-  type __Check = __IsExpected<typeof handler>
-  
-  type __ParamMatchingValue =
-    typeof handler extends { unstable_paramMatching: infer Matcher } ? Matcher :
-    typeof handler extends { unstable_generateParamMatching: (...args: any[]) => infer Matcher } ? Awaited<Matcher> : {}
-  type __InvalidParamMatchingKeys = Exclude<keyof __ParamMatchingValue, keyof ParamMap["/accessibility"]>
-  type __AssertNoInvalidParamMatchingKeys<Invalid extends never> = Invalid
-  const __paramMatchingKeyCheck: __AssertNoInvalidParamMatchingKeys<__InvalidParamMatchingKeys> | undefined = undefined
-  void __paramMatchingKeyCheck
-  // @ts-ignore
-  type __Unused = __Check
-}
-
 // Validate ../../src/app/(site)/contact/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/contact">> = Specific
@@ -589,6 +572,26 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/auth/me">> = Specific
   const handler = {} as typeof import("../../src/app/api/auth/me/route.js")
+  type __Check = __IsExpected<typeof handler>
+  
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/auth/phone/complete/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/auth/phone/complete">> = Specific
+  const handler = {} as typeof import("../../src/app/api/auth/phone/complete/route.js")
+  type __Check = __IsExpected<typeof handler>
+  
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/auth/phone/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/auth/phone">> = Specific
+  const handler = {} as typeof import("../../src/app/api/auth/phone/route.js")
   type __Check = __IsExpected<typeof handler>
   
   // @ts-ignore

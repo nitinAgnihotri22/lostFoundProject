@@ -253,7 +253,6 @@ const GROUPS: { title: string; fields: [Path, string, string?][] }[] = [
       ['contact.phone', 'Support phone'],
       ['contact.hours.en', 'Support hours (English)'],
       ['contact.hours.hi', 'Support hours (Hindi)'],
-      ['accessibilityContactEmail', 'Accessibility email'],
     ],
   },
   {

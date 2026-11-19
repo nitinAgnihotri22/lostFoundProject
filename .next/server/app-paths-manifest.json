@@ -23,6 +23,8 @@
   "/api/auth/login/route": "app/api/auth/login/route.js",
   "/api/auth/logout/route": "app/api/auth/logout/route.js",
   "/api/auth/me/route": "app/api/auth/me/route.js",
+  "/api/auth/phone/complete/route": "app/api/auth/phone/complete/route.js",
+  "/api/auth/phone/route": "app/api/auth/phone/route.js",
   "/api/auth/register/route": "app/api/auth/register/route.js",
   "/api/claims/[id]/route": "app/api/claims/[id]/route.js",
   "/api/claims/route": "app/api/claims/route.js",
@@ -37,7 +39,6 @@
   "/robots.txt/route": "app/robots.txt/route.js",
   "/sitemap.xml/route": "app/sitemap.xml/route.js",
   "/(site)/about/page": "app/(site)/about/page.js",
-  "/(site)/accessibility/page": "app/(site)/accessibility/page.js",
   "/(site)/contact/page": "app/(site)/contact/page.js",
   "/(site)/docs/page": "app/(site)/docs/page.js",
   "/(site)/page": "app/(site)/page.js",
@@ -49,10 +50,10 @@
   "/admin/(panel)/admins/page": "app/admin/(panel)/admins/page.js",
   "/admin/(panel)/audit/page": "app/admin/(panel)/audit/page.js",
   "/admin/(panel)/messages/page": "app/admin/(panel)/messages/page.js",
-  "/admin/(panel)/page": "app/admin/(panel)/page.js",
   "/admin/(panel)/pages/page": "app/admin/(panel)/pages/page.js",
+  "/admin/(panel)/page": "app/admin/(panel)/page.js",
   "/admin/(panel)/review/page": "app/admin/(panel)/review/page.js",
   "/admin/login/page": "app/admin/login/page.js",
-  "/admin/(panel)/posts/page": "app/admin/(panel)/posts/page.js",
-  "/admin/(panel)/users/page": "app/admin/(panel)/users/page.js"
+  "/admin/(panel)/users/page": "app/admin/(panel)/users/page.js",
+  "/admin/(panel)/posts/page": "app/admin/(panel)/posts/page.js"
 }

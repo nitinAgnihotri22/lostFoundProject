@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       // The poster is always the authenticated user – never taken from the body.
       userId: user.id,
       userName: user.name,
-      userEmail: user.email,
+      userEmail: user.email ?? undefined,
       userPhone: (typeof body.userPhone === 'string' && body.userPhone.trim()) || user.phone || undefined,
       reward: Math.max(0, Math.min(Number(body.reward) || 0, 1_000_000)),
       verificationQuestions: optionalQuestions(body.verificationQuestions, type === 'found'),

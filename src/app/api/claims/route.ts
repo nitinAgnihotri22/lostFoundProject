@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       // Claimant details come from the authenticated user, not the request body.
       claimantId: user.id,
       claimantName: user.name,
-      claimantEmail: user.email,
+      claimantEmail: user.email ?? "",
       claimantPhone: phone,
       proof1, proof2, proof3,
     });

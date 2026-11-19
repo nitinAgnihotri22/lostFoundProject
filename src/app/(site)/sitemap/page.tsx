@@ -18,7 +18,6 @@ const GROUPS: { title: TKey; links: { href: string; label: TKey; external?: bool
     links: [
       { href: '/about', label: 'pages.aboutTitle' },
       { href: '/contact', label: 'pages.contactTitle' },
-      { href: '/accessibility', label: 'pages.accessibilityTitle' },
     ],
   },
   {

@@ -27,7 +27,6 @@ const GROUPS: { title: TKey; links: { href: string; label: TKey }[] }[] = [
   {
     title: 'footer.help',
     links: [
-      { href: '/accessibility', label: 'footer.accessibility' },
       { href: '/sitemap', label: 'footer.sitemap' },
     ],
   },

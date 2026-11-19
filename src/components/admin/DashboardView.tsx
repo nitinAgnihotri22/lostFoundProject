@@ -14,7 +14,7 @@ interface Stats {
   review: { pending: number };
   messages: { new: number };
   recentItems: { id: string; title: string; type: string; city: string | null; address: string; status: string; is_hidden: boolean; review_status?: string; created_at: string; user_name: string }[];
-  recentUsers: { id: string; name: string; email: string; status: string; created_at: string; role_source: string }[];
+  recentUsers: { id: string; name: string; email: string | null; status: string; created_at: string; role_source: string }[];
   topCities: { city: string; count: number }[];
   perDay: { day: string; found: number; lost: number }[];
 }
@@ -143,11 +143,11 @@ export default function DashboardView() {
                 {data.recentUsers.map((u) => (
                   <li key={u.id} className="py-2.5 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <Link href={`/admin/users?search=${encodeURIComponent(u.email)}`} className="text-sm font-semibold text-slate-900 hover:text-blue-700 truncate block">{u.name}</Link>
-                      <p className="text-xs text-slate-500 truncate">{u.email} · {timeAgo(u.created_at)}</p>
+                      <Link href={`/admin/users?search=${encodeURIComponent(u.email ?? u.name)}`} className="text-sm font-semibold text-slate-900 hover:text-blue-700 truncate block">{u.name}</Link>
+                      <p className="text-xs text-slate-500 truncate">{u.email ?? 'no email'} · {timeAgo(u.created_at)}</p>
                     </div>
                     <div className="flex gap-1.5 shrink-0">
-                      <Badge>{u.role_source === 'google' ? 'Google' : 'Email'}</Badge>
+                      <Badge>{u.role_source === 'google' ? 'Google' : u.role_source === 'phone' ? 'Phone' : 'Email'}</Badge>
                       {u.status === 'disabled' && <Badge tone="red">disabled</Badge>}
                     </div>
                   </li>

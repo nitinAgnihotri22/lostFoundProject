@@ -6,13 +6,14 @@
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
-export type RoleSource = 'google' | 'normal_register';
-export type RoleType = 'social' | 'email';
+export type RoleSource = 'google' | 'normal_register' | 'phone';
+export type RoleType = 'social' | 'email' | 'phone';
 
 export interface DbUser {
   id: string;
   name: string;
-  email: string;
+  /** NULL for phone accounts created without an email (migration 09). */
+  email: string | null;
   phone: string | null;
   avatar: string | null;
   role_source: RoleSource;
@@ -25,6 +26,8 @@ export interface DbUser {
   /** Added by migration 07 – undefined on older databases (treated as active). */
   status?: 'active' | 'disabled';
   disabled_reason?: string | null;
+  /** OTP-verified phone in E.164, e.g. +919876543210 (migration 09). */
+  phone_e164?: string | null;
 }
 
 /** A disabled account can't sign in, and its existing sessions stop working immediately. */
@@ -37,7 +40,7 @@ export const ACCOUNT_DISABLED_MESSAGE =
 export interface PublicUser {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string;
   avatar?: string;
   roleSource: RoleSource;
@@ -56,7 +59,7 @@ export function toPublicUser(u: DbUser): PublicUser {
   return {
     id: u.id,
     name: u.name,
-    email: u.email,
+    email: u.email ?? undefined,
     phone: u.phone ?? undefined,
     avatar: u.avatar ?? undefined,
     roleSource: u.role_source,
@@ -92,13 +95,15 @@ export async function findUserByProviderId(providerId: string): Promise<DbUser |
 
 export async function createUser(input: {
   name: string;
-  email: string;
+  email?: string | null;
   phone?: string | null;
   avatar?: string | null;
   roleSource: RoleSource;
   roleType: RoleType;
   passwordHash?: string | null;
   authProviderId?: string | null;
+  /** OTP-verified phone (E.164). */
+  phoneE164?: string | null;
 }): Promise<DbUser> {
   const now = new Date().toISOString();
   const { data, error } = await supabaseAdmin
@@ -106,13 +111,14 @@ export async function createUser(input: {
     .insert({
       id: crypto.randomUUID(),
       name: input.name,
-      email: normalizeEmail(input.email),
+      email: input.email ? normalizeEmail(input.email) : null,
       phone: input.phone ?? null,
       avatar: input.avatar ?? null,
       role_source: input.roleSource,
       role_type: input.roleType,
       password_hash: input.roleType === 'social' ? null : input.passwordHash ?? null,
       auth_provider_id: input.authProviderId ?? null,
+      ...(input.phoneE164 ? { phone_e164: input.phoneE164, phone_verified_at: now } : {}),
       last_login_at: now,
       created_at: now,
       updated_at: now,
@@ -164,4 +170,54 @@ export async function verifyGoogleAccessToken(accessToken: string): Promise<Goog
     name: meta.full_name || meta.name || u.email!.split('@')[0],
     avatar: meta.avatar_url || meta.picture || null,
   };
+}
+
+// -------------------------------------------------------------------
+// Phone (OTP) identity
+// -------------------------------------------------------------------
+/** Digits-only E.164 → "+919876543210". Supabase returns phones without the "+". */
+export const toE164 = (phone: string) => `+${phone.replace(/[^0-9]/g, '')}`;
+
+/**
+ * Verify a Supabase access token obtained right after `verifyOtp({ type: 'sms' })`.
+ * The phone is read server-side from Supabase and must be confirmed – the browser
+ * can't claim a number it didn't receive the code on.
+ */
+export async function verifyPhoneAccessToken(accessToken: string): Promise<{ phoneE164: string; providerId: string } | null> {
+  const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
+  const u = data?.user;
+  if (error || !u || !u.phone || !u.phone_confirmed_at) return null;
+  return { phoneE164: toE164(u.phone), providerId: u.id };
+}
+
+export async function findUserByVerifiedPhone(phoneE164: string): Promise<DbUser | null> {
+  const { data, error } = await supabaseAdmin.from('users').select('*').eq('phone_e164', phoneE164).maybeSingle();
+  if (error) throw error;
+  return (data as DbUser) ?? null;
+}
+
+/**
+ * Older accounts only have the free-text phone they typed at sign-up (not verified).
+ * Match it by digits – with or without country code / leading 0. Returns every match.
+ */
+export async function findUsersByTypedPhone(phoneE164: string): Promise<DbUser[]> {
+  const digits = phoneE164.replace(/[^0-9]/g, '');
+  const national = digits.length > 10 ? digits.slice(-10) : digits;
+  const variants = Array.from(new Set([digits, national, `0${national}`]));
+  const { data, error } = await supabaseAdmin.from('users').select('*').in('phone_digits', variants).is('phone_e164', null);
+  if (error) throw error;
+  return data as DbUser[];
+}
+
+/** Mark the phone as verified on an existing account. */
+export async function setVerifiedPhone(id: string, phoneE164: string): Promise<DbUser> {
+  const now = new Date().toISOString();
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .update({ phone: phoneE164, phone_e164: phoneE164, phone_verified_at: now, last_login_at: now, updated_at: now })
+    .eq('id', id)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as DbUser;
 }

@@ -31,7 +31,7 @@ export interface TokenPayload {
 }
 
 /** Sign an HS256 JWT. `scope` selects the signing key, so tokens can't cross between website and admin. */
-function signJwt(claims: Record<string, unknown>, ttlSeconds: number, scope: 'web' | 'admin'): string {
+function signJwt(claims: Record<string, unknown>, ttlSeconds: number, scope: Scope): string {
   const now = Math.floor(Date.now() / 1000);
   const header = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const payload = b64url(JSON.stringify({ ...claims, iat: now, exp: now + ttlSeconds }));
@@ -39,7 +39,7 @@ function signJwt(claims: Record<string, unknown>, ttlSeconds: number, scope: 'we
   return `${header}.${payload}.${signature}`;
 }
 
-function verifyJwt<T extends { exp: number }>(token: string, scope: 'web' | 'admin'): T | null {
+function verifyJwt<T extends { exp: number }>(token: string, scope: Scope): T | null {
   try {
     const [header, payload, signature] = token.split('.');
     if (!header || !payload || !signature) return null;
@@ -54,8 +54,30 @@ function verifyJwt<T extends { exp: number }>(token: string, scope: 'web' | 'adm
   }
 }
 
-/** Website tokens keep the original key; admin tokens use a key derived from it. */
-const signingKey = (scope: 'web' | 'admin') => (scope === 'web' ? getSecret() : `${getSecret()}::lostfound-admin`);
+type Scope = 'web' | 'admin' | 'phone-signup';
+
+/** Website tokens keep the original key; every other kind uses its own key derived from it. */
+const signingKey = (scope: Scope) => (scope === 'web' ? getSecret() : `${getSecret()}::lostfound-${scope}`);
+
+// -------------------------------------------------------------------
+// Phone sign-up ticket: proves "this phone was just verified by OTP" for
+// the follow-up step where a new user enters their name/email. 15 minutes.
+// -------------------------------------------------------------------
+export interface PhoneSignupPayload {
+  phone: string; // E.164
+  purpose: 'phone-signup';
+  iat: number;
+  exp: number;
+}
+
+export function createPhoneSignupToken(phoneE164: string): string {
+  return signJwt({ phone: phoneE164, purpose: 'phone-signup' }, 15 * 60, 'phone-signup');
+}
+
+export function verifyPhoneSignupToken(token: string): PhoneSignupPayload | null {
+  const data = verifyJwt<PhoneSignupPayload>(token, 'phone-signup');
+  return data && data.purpose === 'phone-signup' && typeof data.phone === 'string' ? data : null;
+}
 
 /** Create a JWT for the given user ID. Expires after 24 hours. */
 export function createToken(userId: string): string {

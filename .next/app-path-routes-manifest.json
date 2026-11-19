@@ -23,6 +23,8 @@
   "/api/auth/login/route": "/api/auth/login",
   "/api/auth/logout/route": "/api/auth/logout",
   "/api/auth/me/route": "/api/auth/me",
+  "/api/auth/phone/complete/route": "/api/auth/phone/complete",
+  "/api/auth/phone/route": "/api/auth/phone",
   "/api/auth/register/route": "/api/auth/register",
   "/api/claims/[id]/route": "/api/claims/[id]",
   "/api/claims/route": "/api/claims",
@@ -37,7 +39,6 @@
   "/robots.txt/route": "/robots.txt",
   "/sitemap.xml/route": "/sitemap.xml",
   "/(site)/about/page": "/about",
-  "/(site)/accessibility/page": "/accessibility",
   "/(site)/contact/page": "/contact",
   "/(site)/docs/page": "/docs",
   "/(site)/page": "/",
@@ -49,10 +50,10 @@
   "/admin/(panel)/admins/page": "/admin/admins",
   "/admin/(panel)/audit/page": "/admin/audit",
   "/admin/(panel)/messages/page": "/admin/messages",
-  "/admin/(panel)/page": "/admin",
   "/admin/(panel)/pages/page": "/admin/pages",
+  "/admin/(panel)/page": "/admin",
   "/admin/(panel)/review/page": "/admin/review",
   "/admin/login/page": "/admin/login",
-  "/admin/(panel)/posts/page": "/admin/posts",
-  "/admin/(panel)/users/page": "/admin/users"
+  "/admin/(panel)/users/page": "/admin/users",
+  "/admin/(panel)/posts/page": "/admin/posts"
 }

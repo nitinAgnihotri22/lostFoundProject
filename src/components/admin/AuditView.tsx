@@ -33,6 +33,7 @@ const ACTION_LABEL: Record<string, string> = {
   'post.delete': 'Deleted a post',
   'post.approve': 'Approved post(s) – now live',
   'post.reject': 'Rejected post(s)',
+  'email.review_notice': 'Emailed posters about a review decision',
   'admin.set_role': 'Changed an admin’s role',
   'user.create': 'Created a website user',
   'user.disable': 'Disabled a website user',
@@ -58,7 +59,7 @@ const FILTERS: [string, string][] = [
 function summary(e: Entry): string {
   const d = e.details ?? {};
   const bits: string[] = [];
-  for (const k of ['email', 'title', 'reason', 'reference', 'status', 'changed', 'postsHidden', 'postsRestored', 'length']) {
+  for (const k of ['decision', 'sent', 'skipped', 'email', 'title', 'reason', 'reference', 'status', 'changed', 'postsHidden', 'postsRestored', 'length']) {
     if (d[k] !== undefined && d[k] !== null && d[k] !== '') bits.push(`${k}: ${String(d[k])}`);
   }
   if (Array.isArray(d.ids) && d.ids.length > 1) bits.push(`${d.ids.length} posts`);

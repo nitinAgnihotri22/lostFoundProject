@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import {
   Accessibility, AArrowDown, AArrowUp, Contrast, Droplet, Eye, EyeOff, Link2, MousePointer2, Pause, Play,
   RotateCcw, Square, Type, Volume2, WholeWord, X, ZapOff, MousePointerClick, TextCursor,
@@ -380,9 +379,6 @@ export default function AccessibilityWidget() {
               <button type="button" onClick={reset} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 border border-gray-300 hover:bg-gray-50">
                 <RotateCcw className="w-4 h-4" aria-hidden="true" /> {t('a11y.resetAll')}
               </button>
-              <Link href="/accessibility" onClick={() => setOpen(false)} className="text-xs font-bold text-blue-700 underline underline-offset-2">
-                {t('a11y.statementLink')}
-              </Link>
             </div>
             <p className="text-[0.6875rem] text-gray-500">{t('a11y.shortcut')}</p>
           </div>

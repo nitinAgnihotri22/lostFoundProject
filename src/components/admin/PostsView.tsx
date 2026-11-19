@@ -2,21 +2,32 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff, ImageOff, MapPin, Search, Trash2, X } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, ImageOff, MapPin, Search, Trash2, X, XCircle } from 'lucide-react';
 import { adminApi, AdminApiError, fmtDate, qs, timeAgo } from '@/lib/admin/client';
 import { searchPlaces, type PlaceResult } from '@/lib/geo';
 import type { Claim, Item } from '@/types';
 import { Badge, Button, Card, Empty, ErrorBox, Field, inputClass, Modal, PageHeader, Pagination, Spinner, useDebounced, useLoader, useToast } from './ui';
 import { useAdmin } from './AdminShell';
+import { useReviewActions } from './reviewActions';
 
 interface AdminPost extends Item {
   isHidden: boolean;
   hiddenAt?: string;
   hiddenSource?: string;
   claimCount: number;
-  poster: { id: string; name: string; email?: string; status: 'active' | 'disabled' | 'deleted' };
+  poster: { id: string; name: string; email?: string; status: 'active' | 'disabled' | 'deleted'; postCount?: number; rejectedCount?: number };
   distanceKm?: number;
+  reviewedAt?: string;
+  reviewedByName?: string;
+  reviewNoteRaw?: string;
 }
+export type { AdminPost };
+
+export const REVIEW_BADGE = {
+  pending: { label: 'Awaiting review', tone: 'amber' },
+  approved: { label: 'Approved', tone: 'green' },
+  rejected: { label: 'Rejected', tone: 'red' },
+} as const;
 interface PageData { rows: AdminPost[]; total: number; page: number; pageSize: number }
 
 export interface PostsInitial {
@@ -25,6 +36,7 @@ export interface PostsInitial {
   type?: string;
   status?: string;
   visibility?: string;
+  review?: string;
   userId?: string;
 }
 
@@ -133,7 +145,17 @@ function PlacePicker({ value, onChange }: { value: PlaceResult | null; onChange:
   );
 }
 
-function PostDetail({ id, onClose, onHide, onShow, onDelete }: { id: string; onClose: () => void; onHide: (p: AdminPost) => void; onShow: (p: AdminPost) => void; onDelete: (p: AdminPost) => void }) {
+export function PostDetail({
+  id, onClose, onHide, onShow, onDelete, onApprove, onReject,
+}: {
+  id: string;
+  onClose: () => void;
+  onHide?: (p: AdminPost) => void;
+  onShow?: (p: AdminPost) => void;
+  onDelete?: (p: AdminPost) => void;
+  onApprove?: (p: AdminPost) => void;
+  onReject?: (p: AdminPost) => void;
+}) {
   const { can } = useAdmin();
   const { data, error, loading } = useLoader(() => adminApi<{ post: AdminPost; claims: Claim[] }>(`/posts/${encodeURIComponent(id)}`), [id]);
   const p = data?.post;
@@ -145,17 +167,23 @@ function PostDetail({ id, onClose, onHide, onShow, onDelete }: { id: string; onC
       footer={
         p && (
           <>
-            {can('posts.delete') && (
+            {can('posts.delete') && onDelete && (
               <Button variant="ghost" className="text-red-700 mr-auto" onClick={() => onDelete(p)}>
                 <Trash2 className="w-4 h-4" /> Delete permanently
               </Button>
             )}
-            {can('posts.moderate') &&
+            {can('posts.moderate') && onShow && onHide &&
               (p.isHidden ? (
-                <Button variant="success" onClick={() => onShow(p)}><Eye className="w-4 h-4" /> Show on website</Button>
+                <Button variant="secondary" onClick={() => onShow(p)}><Eye className="w-4 h-4" /> Show on website</Button>
               ) : (
-                <Button variant="danger" onClick={() => onHide(p)}><EyeOff className="w-4 h-4" /> Hide from website</Button>
+                <Button variant="secondary" className="text-red-700" onClick={() => onHide(p)}><EyeOff className="w-4 h-4" /> Hide from website</Button>
               ))}
+            {can('posts.review') && onReject && p.reviewStatus === 'pending' && (
+              <Button variant="danger" onClick={() => onReject(p)}><XCircle className="w-4 h-4" /> Reject</Button>
+            )}
+            {can('posts.review') && onApprove && p.reviewStatus !== 'approved' && (
+              <Button variant="success" onClick={() => onApprove(p)}><CheckCircle2 className="w-4 h-4" /> Approve – go live</Button>
+            )}
           </>
         )
       }
@@ -164,6 +192,18 @@ function PostDetail({ id, onClose, onHide, onShow, onDelete }: { id: string; onC
       {error && <ErrorBox error={error} />}
       {p && (
         <div className="space-y-5 text-sm">
+          {p.reviewStatus && p.reviewStatus !== 'approved' && (
+            <div className={`rounded-lg border px-3 py-2 ${p.reviewStatus === 'pending' ? 'border-amber-300 bg-amber-50 text-amber-950' : 'border-red-200 bg-red-50 text-red-900'}`}>
+              {p.reviewStatus === 'pending' ? (
+                <p><strong>Awaiting review.</strong> Not on the website until a checker or super admin approves it.</p>
+              ) : (
+                <p><strong>Rejected</strong>{p.reviewedByName ? ` by ${p.reviewedByName}` : ''}{p.reviewedAt ? ` · ${fmtDate(p.reviewedAt)}` : ''}. Reason: {p.reviewNoteRaw || '—'}</p>
+              )}
+            </div>
+          )}
+          {p.reviewStatus === 'approved' && p.reviewedAt && (
+            <p className="text-xs text-slate-500">Approved{p.reviewedByName ? ` by ${p.reviewedByName}` : ''} · {fmtDate(p.reviewedAt)}</p>
+          )}
           {p.isHidden && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-900">
               <p className="font-semibold">Hidden from the website {p.hiddenAt ? `· ${fmtDate(p.hiddenAt)}` : ''}</p>
@@ -203,6 +243,11 @@ function PostDetail({ id, onClose, onHide, onShow, onDelete }: { id: string; onC
               {p.poster.email && <span className="text-slate-500"> · {p.poster.email}</span>}
               {p.userPhone && <span className="text-slate-500"> · {p.userPhone}</span>}
               {p.poster.status === 'disabled' && <> <Badge tone="red">disabled</Badge></>}
+              {p.poster.postCount !== undefined && (
+                <span className="block text-xs text-slate-500">
+                  {p.poster.postCount} post{p.poster.postCount === 1 ? '' : 's'} in total{p.poster.rejectedCount ? ` · ${p.poster.rejectedCount} rejected before` : ''}
+                </span>
+              )}
             </dd>
             {p.verificationQuestions && (
               <>
@@ -251,6 +296,7 @@ export default function PostsView({ initial }: { initial: PostsInitial }) {
   const [type, setType] = useState(initial.type ?? '');
   const [status, setStatus] = useState(initial.status ?? '');
   const [visibility, setVisibility] = useState(initial.visibility ?? '');
+  const [review, setReview] = useState(initial.review ?? '');
   const [userId, setUserId] = useState(initial.userId ?? '');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -259,6 +305,10 @@ export default function PostsView({ initial }: { initial: PostsInitial }) {
   const [deleteTarget, setDeleteTarget] = useState<AdminPost | null>(null);
   const [busy, setBusy] = useState(false);
   const debouncedSearch = useDebounced(search);
+  const reviewer = useReviewActions(() => {
+    setDetailId(null);
+    reload();
+  });
 
   const cities = useLoader(() => adminApi<{ city: string; count: number }[]>('/posts/cities'), []);
   const query = useMemo(
@@ -272,17 +322,18 @@ export default function PostsView({ initial }: { initial: PostsInitial }) {
         type,
         status,
         visibility,
+        review,
         userId,
         page,
       }),
-    [debouncedSearch, locMode, city, place, radius, type, status, visibility, userId, page]
+    [debouncedSearch, locMode, city, place, radius, type, status, visibility, review, userId, page]
   );
   const firstQuery = useRef(true);
   useEffect(() => {
     // Any filter change goes back to page 1.
     if (firstQuery.current) firstQuery.current = false;
     else setPage(1);
-  }, [debouncedSearch, locMode, city, place, radius, type, status, visibility, userId]);
+  }, [debouncedSearch, locMode, city, place, radius, type, status, visibility, review, userId]);
 
   const { data, error, loading, reload } = useLoader(() => adminApi<PageData>(`/posts${query}`), [query]);
   useEffect(() => setSelected(new Set()), [query]);
@@ -344,6 +395,7 @@ export default function PostsView({ initial }: { initial: PostsInitial }) {
           {select(type, setType, 'Type', [['', 'Found & lost'], ['found', 'Found'], ['lost', 'Lost']])}
           {select(visibility, setVisibility, 'Visibility', [['', 'Visible & hidden'], ['visible', 'Visible on website'], ['hidden', 'Hidden by admin']])}
           {select(status, setStatus, 'Status', [['', 'Any status'], ['active', 'Open'], ['claimed', 'Claimed'], ['resolved', 'Closed']])}
+          {select(review, setReview, 'Review', [['', 'Any review state'], ['pending', 'Awaiting review'], ['approved', 'Approved'], ['rejected', 'Rejected']])}
           <div className="flex rounded-lg border border-slate-300 bg-white p-0.5 text-sm" role="group" aria-label="Location filter">
             {([['all', 'All locations'], ['city', 'City'], ['near', 'Near a place']] as const).map(([v, l]) => (
               <button key={v} type="button" aria-pressed={locMode === v} onClick={() => setLocMode(v)} className={`flex-1 rounded-md px-2 py-1.5 font-semibold ${locMode === v ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'}`}>
@@ -447,7 +499,8 @@ export default function PostsView({ initial }: { initial: PostsInitial }) {
                     <td className="px-4 py-3">
                       <div className="flex flex-col items-start gap-1">
                         <Badge tone={STATUS_TONE[p.status]}>{STATUS_LABEL[p.status]}</Badge>
-                        {p.isHidden ? <Badge tone="red" title={p.hiddenReason}>Hidden</Badge> : <Badge tone="green">Visible</Badge>}
+                        {p.reviewStatus && p.reviewStatus !== 'approved' && <Badge tone={REVIEW_BADGE[p.reviewStatus].tone}>{REVIEW_BADGE[p.reviewStatus].label}</Badge>}
+                        {p.isHidden ? <Badge tone="red" title={p.hiddenReason}>Hidden</Badge> : p.reviewStatus === 'approved' || !p.reviewStatus ? <Badge tone="green">Visible</Badge> : null}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
@@ -475,8 +528,11 @@ export default function PostsView({ initial }: { initial: PostsInitial }) {
           onHide={(p) => setHideTarget([p.id])}
           onShow={(p) => setHidden([p.id], false)}
           onDelete={(p) => setDeleteTarget(p)}
+          onApprove={(p) => reviewer.approve([p.id])}
+          onReject={(p) => reviewer.reject([p.id])}
         />
       )}
+      {reviewer.dialog}
       {hideTarget && <HideDialog count={hideTarget.length} busy={busy} onCancel={() => setHideTarget(null)} onConfirm={(r) => setHidden(hideTarget, true, r)} />}
       {deleteTarget && (
         <Modal

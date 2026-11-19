@@ -42,13 +42,13 @@ export async function dashboardStats() {
   const [
     usersTotal, usersDisabled, usersNew,
     itemsTotal, itemsLive, itemsHidden, itemsClosed, itemsNew, found, lost,
-    claimsPending, claimsApproved, messagesNew,
+    claimsPending, claimsApproved, messagesNew, reviewPending,
   ] = await Promise.all([
     count('users'),
     count('users', (q) => q.eq('status', 'disabled')),
     count('users', (q) => q.gte('created_at', weekAgo)),
     count('items'),
-    count('items', (q) => q.eq('status', 'active').eq('is_hidden', false)),
+    count('items', (q) => q.eq('status', 'active').eq('is_hidden', false).eq('review_status', 'approved')),
     count('items', (q) => q.eq('is_hidden', true)),
     count('items', (q) => q.in('status', ['claimed', 'resolved'])),
     count('items', (q) => q.gte('created_at', weekAgo)),
@@ -57,10 +57,11 @@ export async function dashboardStats() {
     count('claims', (q) => q.eq('status', 'pending')),
     count('claims', (q) => q.eq('status', 'approved')),
     count('contact_messages', (q) => q.eq('status', 'new')).catch(() => 0),
+    countPendingReview(),
   ]);
 
   const [recentItems, recentUsers, cities] = await Promise.all([
-    supabaseAdmin.from('items').select('id,title,type,city,address,status,is_hidden,created_at,user_name').order('created_at', { ascending: false }).limit(6),
+    supabaseAdmin.from('items').select('id,title,type,city,address,status,is_hidden,review_status,created_at,user_name').order('created_at', { ascending: false }).limit(6),
     supabaseAdmin.from('users').select('id,name,email,status,created_at,role_source').order('created_at', { ascending: false }).limit(6),
     listCities(),
   ]);
@@ -87,6 +88,7 @@ export async function dashboardStats() {
     users: { total: usersTotal, disabled: usersDisabled, newThisWeek: usersNew },
     items: { total: itemsTotal, live: itemsLive, hidden: itemsHidden, closed: itemsClosed, newThisWeek: itemsNew, found, lost },
     claims: { pending: claimsPending, approved: claimsApproved },
+    review: { pending: reviewPending },
     messages: { new: messagesNew },
     recentItems: recentItems.data,
     recentUsers: recentUsers.data,
@@ -104,8 +106,12 @@ export interface AdminPost extends Item {
   hiddenSource?: string;
   hiddenBy?: string;
   claimCount: number;
-  poster: { id: string; name: string; email?: string; status: 'active' | 'disabled' | 'deleted' };
+  poster: { id: string; name: string; email?: string; status: 'active' | 'disabled' | 'deleted'; postCount?: number; rejectedCount?: number };
   distanceKm?: number;
+  reviewedAt?: string;
+  reviewedByName?: string;
+  /** Raw review note, including on approved posts. */
+  reviewNoteRaw?: string;
 }
 
 export interface PostFilters {
@@ -114,6 +120,9 @@ export interface PostFilters {
   type?: 'found' | 'lost';
   status?: Item['status'];
   visibility?: 'visible' | 'hidden';
+  review?: 'pending' | 'approved' | 'rejected';
+  /** Oldest first (the review queue). Default is newest first. */
+  oldestFirst?: boolean;
   userId?: string;
   near?: { lat: number; lng: number; radiusKm: number };
   page?: number;
@@ -124,12 +133,24 @@ async function decoratePosts(rows: any[]): Promise<AdminPost[]> {
   if (rows.length === 0) return [];
   const ids = rows.map((r) => String(r.id));
   const userIds = Array.from(new Set(rows.map((r) => String(r.user_id)).filter(Boolean)));
-  const [claims, users] = await Promise.all([
+  const reviewerIds = Array.from(new Set(rows.map((r) => r.reviewed_by).filter(Boolean).map(String)));
+  const [claims, users, reviewers, history] = await Promise.all([
     supabaseAdmin.from('claims').select('item_id').in('item_id', ids),
     userIds.length ? supabaseAdmin.from('users').select('id,name,email,status').in('id', userIds) : Promise.resolve({ data: [], error: null }),
+    reviewerIds.length ? supabaseAdmin.from('admin_users').select('id,name').in('id', reviewerIds) : Promise.resolve({ data: [], error: null }),
+    // Poster history helps the checker: how many posts, how many were rejected.
+    userIds.length ? supabaseAdmin.from('items').select('user_id,review_status').in('user_id', userIds).limit(10000) : Promise.resolve({ data: [], error: null }),
   ]);
   if (claims.error) throw claims.error;
   if (users.error) throw users.error;
+  const reviewerMap = new Map(((reviewers.data ?? []) as any[]).map((a) => [String(a.id), String(a.name)]));
+  const postCounts = new Map<string, { total: number; rejected: number }>();
+  for (const h of (history.data ?? []) as any[]) {
+    const c = postCounts.get(String(h.user_id)) ?? { total: 0, rejected: 0 };
+    c.total++;
+    if (h.review_status === 'rejected') c.rejected++;
+    postCounts.set(String(h.user_id), c);
+  }
   const claimCounts = new Map<string, number>();
   for (const c of claims.data as any[]) claimCounts.set(String(c.item_id), (claimCounts.get(String(c.item_id)) ?? 0) + 1);
   const userMap = new Map((users.data as any[]).map((u) => [String(u.id), u]));
@@ -146,10 +167,17 @@ async function decoratePosts(rows: any[]): Promise<AdminPost[]> {
       hiddenSource: r.hidden_source ?? undefined,
       hiddenBy: r.hidden_by ?? undefined,
       claimCount: claimCounts.get(String(r.id)) ?? 0,
-      poster: u
-        ? { id: String(u.id), name: String(u.name), email: u.email ? String(u.email) : undefined, status: u.status === 'disabled' ? 'disabled' : 'active' }
-        : { id: String(r.user_id), name: String(r.user_name || 'Unknown'), status: 'deleted' },
+      poster: {
+        ...(u
+          ? { id: String(u.id), name: String(u.name), email: u.email ? String(u.email) : undefined, status: u.status === 'disabled' ? ('disabled' as const) : ('active' as const) }
+          : { id: String(r.user_id), name: String(r.user_name || 'Unknown'), status: 'deleted' as const }),
+        postCount: postCounts.get(String(r.user_id))?.total,
+        rejectedCount: postCounts.get(String(r.user_id))?.rejected,
+      },
       distanceKm: typeof r._distanceKm === 'number' ? Math.round(r._distanceKm * 10) / 10 : undefined,
+      reviewedAt: r.reviewed_at ?? undefined,
+      reviewedByName: r.reviewed_by ? reviewerMap.get(String(r.reviewed_by)) : undefined,
+      reviewNoteRaw: r.review_note ?? undefined,
     } satisfies AdminPost;
   });
 }
@@ -164,6 +192,7 @@ export async function listPosts(f: PostFilters): Promise<Page<AdminPost>> {
     if (f.type) q = q.eq('type', f.type);
     if (f.status) q = q.eq('status', f.status);
     if (f.visibility) q = q.eq('is_hidden', f.visibility === 'hidden');
+    if (f.review) q = q.eq('review_status', f.review);
     if (f.userId) q = q.eq('user_id', f.userId);
     return q;
   };
@@ -185,7 +214,7 @@ export async function listPosts(f: PostFilters): Promise<Page<AdminPost>> {
   }
 
   const { data, error, count: total } = await apply(
-    supabaseAdmin.from('items').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(from, to)
+    supabaseAdmin.from('items').select('*', { count: 'exact' }).order('created_at', { ascending: !!f.oldestFirst }).range(from, to)
   );
   if (error) throw error;
   return { rows: await decoratePosts(data as any[]), total: total ?? 0, page: p, pageSize: size };
@@ -221,6 +250,32 @@ export async function setPostsHidden(ids: string[], hidden: boolean, reason: str
   const { data, error } = await supabaseAdmin.from('items').update(patch).in('id', ids).select('id');
   if (error) throw error;
   return (data as any[]).length;
+}
+
+/** Posts waiting for a checker. */
+export async function countPendingReview(): Promise<number> {
+  return count('items', (q) => q.eq('review_status', 'pending'));
+}
+
+/**
+ * Maker-checker decision. Approve works on pending (or previously rejected) posts;
+ * reject only on pending ones – to take a live post down, hide it instead.
+ * Returns the ids that actually changed (others were already decided by someone else).
+ */
+export async function reviewPosts(ids: string[], decision: 'approve' | 'reject', note: string | null, admin: DbAdmin): Promise<string[]> {
+  const { data, error } = await supabaseAdmin
+    .from('items')
+    .update({
+      review_status: decision === 'approve' ? 'approved' : 'rejected',
+      review_note: note,
+      reviewed_by: admin.id,
+      reviewed_at: nowIso(),
+    })
+    .in('id', ids)
+    .in('review_status', decision === 'approve' ? ['pending', 'rejected'] : ['pending'])
+    .select('id');
+  if (error) throw error;
+  return (data as any[]).map((r) => String(r.id));
 }
 
 // ===================================================================

@@ -14,6 +14,7 @@
   "/api/admin/pages/route": "/api/admin/pages",
   "/api/admin/posts/[id]/route": "/api/admin/posts/[id]",
   "/api/admin/posts/cities/route": "/api/admin/posts/cities",
+  "/api/admin/posts/review-count/route": "/api/admin/posts/review-count",
   "/api/admin/posts/route": "/api/admin/posts",
   "/api/admin/settings/route": "/api/admin/settings",
   "/api/admin/stats/route": "/api/admin/stats",
@@ -50,7 +51,8 @@
   "/admin/(panel)/messages/page": "/admin/messages",
   "/admin/(panel)/page": "/admin",
   "/admin/(panel)/pages/page": "/admin/pages",
+  "/admin/(panel)/review/page": "/admin/review",
+  "/admin/login/page": "/admin/login",
   "/admin/(panel)/posts/page": "/admin/posts",
-  "/admin/(panel)/users/page": "/admin/users",
-  "/admin/login/page": "/admin/login"
+  "/admin/(panel)/users/page": "/admin/users"
 }

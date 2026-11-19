@@ -13,21 +13,41 @@
   reset that account's password and make it an active super admin.
 */
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import readline from 'node:readline';
 import { createClient } from '@supabase/supabase-js';
 
-for (const f of ['.env.local', '.env']) {
+// Load the same env files Next.js uses (first one wins per variable). Parsed by hand
+// so it works on any Node version; variables already set in the shell take priority.
+const ENV_FILES = ['.env.development.local', '.env.local', '.env.development', '.env'];
+const found = [];
+for (const f of ENV_FILES) {
+  let text;
   try {
-    process.loadEnvFile(f);
+    text = fs.readFileSync(path.join(process.cwd(), f), 'utf8');
   } catch {
-    // file not present
+    continue;
+  }
+  found.push(f);
+  for (const raw of text.split(/\r?\n/)) {
+    const m = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/.exec(raw);
+    if (!m || process.env[m[1]] !== undefined) continue;
+    let v = m[2].trim();
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+    else v = v.replace(/\s+#.*$/, '');
+    process.env[m[1]] = v;
   }
 }
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) {
-  console.error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set (in .env.local or the environment).');
+  console.error(`Missing ${[!url && 'NEXT_PUBLIC_SUPABASE_URL', !key && 'SUPABASE_SERVICE_ROLE_KEY'].filter(Boolean).join(' and ')}.`);
+  console.error(`Looked in ${process.cwd()} for: ${ENV_FILES.join(', ')}`);
+  console.error(found.length ? `Found: ${found.join(', ')} – but the variable(s) above aren't in them.` : 'None of those files exist here.');
+  console.error('\nFix: add them to .env.local in the project folder, or pass them inline:');
+  console.error('  NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co SUPABASE_SERVICE_ROLE_KEY=your-key npm run admin:create');
   process.exit(1);
 }
 

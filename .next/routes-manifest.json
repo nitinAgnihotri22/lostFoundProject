@@ -167,6 +167,12 @@
       "namedRegex": "^/admin/posts(?:/)?$"
     },
     {
+      "page": "/admin/review",
+      "regex": "^/admin/review(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/review(?:/)?$"
+    },
+    {
       "page": "/admin/users",
       "regex": "^/admin/users(?:/)?$",
       "routeKeys": {},
@@ -231,6 +237,12 @@
       "regex": "^/api/admin/posts/cities(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/admin/posts/cities(?:/)?$"
+    },
+    {
+      "page": "/api/admin/posts/review-count",
+      "regex": "^/api/admin/posts/review\\-count(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/posts/review\\-count(?:/)?$"
     },
     {
       "page": "/api/admin/settings",

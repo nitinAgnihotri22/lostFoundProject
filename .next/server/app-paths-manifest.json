@@ -14,6 +14,7 @@
   "/api/admin/pages/route": "app/api/admin/pages/route.js",
   "/api/admin/posts/[id]/route": "app/api/admin/posts/[id]/route.js",
   "/api/admin/posts/cities/route": "app/api/admin/posts/cities/route.js",
+  "/api/admin/posts/review-count/route": "app/api/admin/posts/review-count/route.js",
   "/api/admin/posts/route": "app/api/admin/posts/route.js",
   "/api/admin/settings/route": "app/api/admin/settings/route.js",
   "/api/admin/stats/route": "app/api/admin/stats/route.js",
@@ -50,7 +51,8 @@
   "/admin/(panel)/messages/page": "app/admin/(panel)/messages/page.js",
   "/admin/(panel)/page": "app/admin/(panel)/page.js",
   "/admin/(panel)/pages/page": "app/admin/(panel)/pages/page.js",
+  "/admin/(panel)/review/page": "app/admin/(panel)/review/page.js",
+  "/admin/login/page": "app/admin/login/page.js",
   "/admin/(panel)/posts/page": "app/admin/(panel)/posts/page.js",
-  "/admin/(panel)/users/page": "app/admin/(panel)/users/page.js",
-  "/admin/login/page": "app/admin/login/page.js"
+  "/admin/(panel)/users/page": "app/admin/(panel)/users/page.js"
 }

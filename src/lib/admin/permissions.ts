@@ -1,19 +1,27 @@
 // Admin roles and what each may do. Shared by the API (enforcement) and the
 // admin UI (hiding what the role can't use) – keep it free of server imports.
 
-export type AdminRole = 'super_admin' | 'sub_admin';
+export type AdminRole = 'super_admin' | 'sub_admin' | 'checker';
 
 export const ADMIN_ROLE_LABEL: Record<AdminRole, string> = {
   super_admin: 'Super admin',
   sub_admin: 'Sub admin',
+  checker: 'Checker',
 };
 
+/** Roles a super admin can give to other admins. */
+export const ASSIGNABLE_ROLES: AdminRole[] = ['sub_admin', 'checker'];
+
+const ALL: AdminRole[] = ['super_admin', 'sub_admin', 'checker'];
 const BOTH: AdminRole[] = ['super_admin', 'sub_admin'];
 const SUPER: AdminRole[] = ['super_admin'];
+/** Maker-checker: only these roles may approve or reject new posts. */
+const REVIEWERS: AdminRole[] = ['super_admin', 'checker'];
 
 export const PERMISSIONS = {
-  'dashboard.view': BOTH,
-  'posts.view': BOTH,
+  'dashboard.view': ALL,
+  'posts.view': ALL,
+  'posts.review': REVIEWERS, // approve / reject posts waiting for review
   'posts.moderate': BOTH, // hide / restore a post
   'posts.delete': SUPER, // permanent delete
   'users.view': BOTH,

@@ -6,6 +6,7 @@ import { Compass } from 'lucide-react';
 import { useI18n } from '@/i18n/LanguageProvider';
 import type { TKey } from '@/i18n/translate';
 import LanguageSwitcher from './LanguageSwitcher';
+import { openCookieSettings } from '@/lib/consent';
 
 const GROUPS: { title: TKey; links: { href: string; label: TKey }[] }[] = [
   {
@@ -69,6 +70,10 @@ export default function SiteFooter({ companyName }: { companyName: string }) {
       <div className="border-t border-gray-100">
         <p className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-xs text-gray-500">
           {t('footer.rights', { year: new Date().getFullYear(), company: companyName })}
+          <span aria-hidden="true"> · </span>
+          <button type="button" onClick={openCookieSettings} className="underline underline-offset-2 hover:text-blue-700">
+            {t('cookies.settings')}
+          </button>
         </p>
       </div>
     </footer>

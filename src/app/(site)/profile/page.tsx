@@ -247,6 +247,16 @@ export default function ProfilePage() {
                       {(item.claimCount ?? 0) > 0 && (
                         <span className="text-[0.625rem] font-bold px-2 py-1 rounded-full bg-white/95 text-blue-700 shadow">{t('profile.claimsN', { count: item.claimCount ?? 0 })}</span>
                       )}
+                      {item.reviewStatus === 'pending' && (
+                        <span className="text-[0.625rem] font-bold uppercase tracking-wider px-2 py-1 rounded-full shadow bg-amber-400 text-amber-950">
+                          {t('profile.underReview')}
+                        </span>
+                      )}
+                      {item.reviewStatus === 'rejected' && (
+                        <span title={item.reviewNote} className="text-[0.625rem] font-bold uppercase tracking-wider px-2 py-1 rounded-full shadow bg-red-600 text-white">
+                          {t('profile.notApproved')}
+                        </span>
+                      )}
                       {item.hiddenByAdmin && (
                         <span title={item.hiddenReason} className="text-[0.625rem] font-bold uppercase tracking-wider px-2 py-1 rounded-full shadow bg-red-600 text-white">
                           {t('profile.hiddenByAdmin')}

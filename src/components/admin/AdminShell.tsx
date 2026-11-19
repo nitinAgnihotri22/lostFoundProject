@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  ExternalLink, FileText, Inbox, LayoutDashboard, LogOut, Menu, Package, ScrollText, ShieldCheck, UserCog, Users, X,
+  ClipboardCheck, ExternalLink, FileText, Inbox, LayoutDashboard, LogOut, Menu, Package, ScrollText, ShieldCheck, UserCog, Users, X,
 } from 'lucide-react';
 import { ADMIN_ROLE_LABEL, AdminProfile, Permission, can } from '@/lib/admin/permissions';
 import { cx, ToastProvider } from './ui';
@@ -18,6 +18,7 @@ export function useAdmin() {
 
 const NAV: { href: string; label: string; icon: React.ElementType; perm: Permission | null }[] = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, perm: 'dashboard.view' },
+  { href: '/admin/review', label: 'Review queue', icon: ClipboardCheck, perm: 'posts.review' },
   { href: '/admin/posts', label: 'Posts', icon: Package, perm: 'posts.view' },
   { href: '/admin/users', label: 'Website users', icon: Users, perm: 'users.view' },
   { href: '/admin/messages', label: 'Contact messages', icon: Inbox, perm: 'messages.view' },
@@ -39,6 +40,25 @@ export default function AdminShell({ admin, children }: { admin: AdminProfile; c
   }, [admin.mustChangePassword, pathname, router]);
 
   useEffect(() => setOpen(false), [pathname]);
+
+  // Review-queue badge for checkers / super admins: refresh every minute and after each decision.
+  const [pendingReview, setPendingReview] = useState<number | null>(null);
+  const canReview = can(admin.role, 'posts.review') && !admin.mustChangePassword;
+  useEffect(() => {
+    if (!canReview) return;
+    const load = () =>
+      fetch('/api/admin/posts/review-count', { credentials: 'same-origin', cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => j && setPendingReview(j.data.pending))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, 60_000);
+    window.addEventListener('lf-admin:review-changed', load);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener('lf-admin:review-changed', load);
+    };
+  }, [canReview, pathname]);
 
   const signOut = async () => {
     await fetch('/api/admin/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
@@ -67,6 +87,11 @@ export default function AdminShell({ admin, children }: { admin: AdminProfile; c
             )}
           >
             <Icon className="w-4 h-4" /> {label}
+            {href === '/admin/review' && !!pendingReview && (
+              <span className="ml-auto min-w-[1.25rem] rounded-full bg-amber-400 px-1.5 text-center text-xs font-bold text-slate-900" aria-label={`${pendingReview} waiting`}>
+                {pendingReview > 99 ? '99+' : pendingReview}
+              </span>
+            )}
           </Link>
         );
       })}

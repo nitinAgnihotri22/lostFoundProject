@@ -59,26 +59,36 @@ export function mapItemRow(row: any): Item {
     resolvedAt: row.resolved_at ? String(row.resolved_at) : undefined,
     hiddenByAdmin: row.is_hidden === true ? true : undefined,
     hiddenReason: row.is_hidden === true && row.hidden_reason ? String(row.hidden_reason) : undefined,
+    reviewStatus: row.review_status ? (String(row.review_status) as Item['reviewStatus']) : 'approved',
+    reviewNote: row.review_status === 'rejected' && row.review_note ? String(row.review_note) : undefined,
   };
 }
 
+/** Visible to the public: approved by a checker and not hidden by an admin. */
+export const isPublicItem = (i: Item) => !i.hiddenByAdmin && (i.reviewStatus ?? 'approved') === 'approved';
+
 /**
- * Items, newest first. Items hidden by an admin are left out unless `includeHidden`
- * is set (the poster's own list and the admin panel use that).
+ * Items, newest first. Only public items (approved and not hidden) unless
+ * `includeHidden` is set – the poster's own lists use that to see posts that
+ * are under review, rejected or hidden.
  */
 export async function listItems(
   opts: { status?: Item['status'] | 'all'; userId?: string; includeHidden?: boolean } = {}
 ): Promise<Item[]> {
-  const build = (filterHidden: boolean) => {
+  const build = (filterHidden: boolean, filterReview: boolean) => {
     let q = supabase.from('items').select('*').order('created_at', { ascending: false });
     if (opts.status && opts.status !== 'all') q = q.eq('status', opts.status);
     if (opts.userId) q = q.eq('user_id', opts.userId);
     if (filterHidden) q = q.eq('is_hidden', false);
+    if (filterReview) q = q.eq('review_status', 'approved');
     return q;
   };
-  let res = await build(!opts.includeHidden);
-  // is_hidden arrives with migration 07 – before that nothing can be hidden anyway.
-  if (res.error && !opts.includeHidden && isMissingColumn(res.error)) res = await build(false);
+  const pub = !opts.includeHidden;
+  let res = await build(pub, pub);
+  // review_status arrives with migration 08 and is_hidden with 07 – before that
+  // nothing can be pending/hidden, so drop the missing filter and retry.
+  if (res.error && pub && isMissingColumn(res.error)) res = await build(true, false);
+  if (res.error && pub && isMissingColumn(res.error)) res = await build(false, false);
   if (res.error) throw res.error;
   return (res.data as any[]).map(mapItemRow);
 }
@@ -115,6 +125,8 @@ export async function insertItem(item: Omit<Item, 'id' | 'createdAt' | 'status'>
       user_phone: item.userPhone ?? null,
       reward: item.reward || 0,
       verification_questions: item.verificationQuestions ? JSON.stringify(item.verificationQuestions) : null,
+      // Maker-checker: every new post waits for a checker / super admin (migration 08).
+      review_status: 'pending',
       created_at: now,
     })
     .select('*')

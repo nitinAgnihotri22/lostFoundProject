@@ -66,9 +66,10 @@ export function privacyPolicy(lang: Lang, c: SiteSettings = siteConfig): Doc {
           { dl: [
             ['lf_token (कुकी)', 'आपको 24 घंटे तक साइन इन रखती है। ज़रूरी।'],
             ['lf_lang (कुकी)', 'आपकी चुनी हुई भाषा (English/हिन्दी) याद रखती है।'],
+            ['lf_consent (कुकी)', 'कुकी के बारे में आपकी पसंद 180 दिनों तक याद रखती है। ज़रूरी।'],
             ['lf_a11y (ब्राउज़र भंडारण)', 'आपकी सुगम्यता सेटिंग (अक्षर का आकार, रंग आदि) याद रखती है। यह हमारे सर्वर पर नहीं भेजी जाती।'],
           ] },
-          'हम विज्ञापन या ट्रैकिंग कुकीज़ का उपयोग नहीं करते। यदि भविष्य में करेंगे, तो पहले आपकी सहमति लेंगे।',
+          'हम अभी विज्ञापन या ट्रैकिंग कुकीज़ का उपयोग नहीं करते। यदि शुरू करेंगे, तो वे तभी लोड होंगी जब आपने कुकी बैनर में अनुमति दी हो। आप हर पेज के नीचे “कुकी सेटिंग” से कभी भी अपनी पसंद बदल सकते हैं।',
         ] },
         { id: 'retention', title: '8. हम डेटा कितने समय तक रखते हैं', blocks: [
           [
@@ -168,9 +169,10 @@ export function privacyPolicy(lang: Lang, c: SiteSettings = siteConfig): Doc {
         { dl: [
           ['lf_token (cookie)', 'Keeps you signed in for 24 hours. Essential.'],
           ['lf_lang (cookie)', 'Remembers your language (English/हिन्दी).'],
+          ['lf_consent (cookie)', 'Remembers your cookie choices for 180 days. Essential.'],
           ['lf_a11y (browser storage)', 'Remembers your accessibility settings (text size, colours, etc.). It is never sent to our servers.'],
         ] },
-        'We do not use advertising or tracking cookies. If we ever do, we will ask for your consent first.',
+        'We do not use advertising or tracking cookies today. If we start, they will only load if you allowed them in the cookie banner. You can change your choice any time with “Cookie settings” at the bottom of every page.',
       ] },
       { id: 'retention', title: '8. How long we keep data', blocks: [
         [

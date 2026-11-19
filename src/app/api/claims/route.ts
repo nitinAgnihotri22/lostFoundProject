@@ -1,7 +1,7 @@
 // GET  /api/claims – the caller's claims (`mine`) and claims on the caller's items (`received`).
 // POST /api/claims – submit a 3-proof claim on a found item.
 import { NextRequest, NextResponse } from 'next/server';
-import { getItem, insertClaim, listClaimsByClaimant, listClaimsForItems, listItems } from '@/lib/db';
+import { isPublicItem, getItem, insertClaim, listClaimsByClaimant, listClaimsForItems, listItems } from '@/lib/db';
 import { fail, requireAuth } from '@/lib/session';
 import { readJson, routeError, toSummaries } from '@/lib/itemView';
 import { LIMITS, requireText, str } from '@/lib/validation';
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const phone = str(body.phone || body.claimantPhone).slice(0, 40) || user.phone || '';
 
     const item = await getItem(itemId);
-    if (!item || item.hiddenByAdmin) return fail(404, 'Item not found.');
+    if (!item || !isPublicItem(item)) return fail(404, 'Item not found.');
     if (item.type !== 'found') {
       return fail(400, 'Only found items can be claimed. If you found a lost item, message its owner instead.', { code: 'NOT_CLAIMABLE' });
     }

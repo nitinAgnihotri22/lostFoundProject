@@ -1,13 +1,15 @@
 'use client';
-// "Create user" for super admins. Two account types:
-//   - Sub admin     → can sign in to /admin (not to the website)
+// "Create user" for super admins. Three account types:
+//   - Sub admin     → admin panel: moderates posts, users and messages
+//   - Checker       → admin panel: approves / rejects new posts (maker-checker)
 //   - Website user  → a normal LostFound account (can't sign in to /admin)
 import React, { useState } from 'react';
-import { Copy, RefreshCw, ShieldCheck, User } from 'lucide-react';
+import { ClipboardCheck, Copy, RefreshCw, ShieldCheck, User } from 'lucide-react';
 import { adminApi, AdminApiError, generatePassword } from '@/lib/admin/client';
 import { Button, Field, inputClass, Modal, useToast } from './ui';
 
-export type NewUserType = 'sub_admin' | 'website_user';
+export type NewUserType = 'sub_admin' | 'checker' | 'website_user';
+const isAdminType = (t: NewUserType) => t === 'sub_admin' || t === 'checker';
 
 export default function CreateUserDialog({ defaultType, onClose, onCreated }: { defaultType: NewUserType; onClose: () => void; onCreated: (type: NewUserType) => void }) {
   const toast = useToast();
@@ -25,7 +27,7 @@ export default function CreateUserDialog({ defaultType, onClose, onCreated }: { 
     setErrors({});
     setBusy(true);
     try {
-      if (type === 'sub_admin') await adminApi('/admins', { method: 'POST', json: { name, email, password } });
+      if (isAdminType(type)) await adminApi('/admins', { method: 'POST', json: { name, email, password, role: type } });
       else await adminApi('/users', { method: 'POST', json: { name, email, password, phone: phone || undefined } });
       setDone({ email: email.trim().toLowerCase(), password, type });
       onCreated(type);
@@ -47,12 +49,12 @@ export default function CreateUserDialog({ defaultType, onClose, onCreated }: { 
   };
 
   if (done) {
-    const where = done.type === 'sub_admin' ? `${window.location.origin}/admin/login` : window.location.origin;
-    const note = `LostFound ${done.type === 'sub_admin' ? 'admin' : ''} account\nSign in at: ${where}\nEmail: ${done.email}\nTemporary password: ${done.password}`;
+    const where = isAdminType(done.type) ? `${window.location.origin}/admin/login` : window.location.origin;
+    const note = `LostFound ${done.type === 'checker' ? 'checker' : done.type === 'sub_admin' ? 'admin' : ''} account\nSign in at: ${where}\nEmail: ${done.email}\nTemporary password: ${done.password}`;
     return (
       <Modal title="Account created" onClose={onClose} footer={<Button variant="primary" onClick={onClose}>Done</Button>}>
         <p className="text-sm text-slate-700">
-          Share these details privately (not by public chat). {done.type === 'sub_admin' ? 'They’ll be asked to choose a new password the first time they sign in.' : 'They can sign in on the website straight away.'}
+          Share these details privately (not by public chat). {isAdminType(done.type) ? 'They’ll be asked to choose a new password the first time they sign in.' : 'They can sign in on the website straight away.'}
         </p>
         <pre className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-100 p-3 text-sm text-slate-900 font-mono">{note}</pre>
         <Button className="mt-3" onClick={() => copy(note)}><Copy className="w-4 h-4" /> Copy details</Button>
@@ -68,16 +70,17 @@ export default function CreateUserDialog({ defaultType, onClose, onCreated }: { 
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" type="submit" form="create-user-form" loading={busy}>Create {type === 'sub_admin' ? 'sub admin' : 'website user'}</Button>
+          <Button variant="primary" type="submit" form="create-user-form" loading={busy}>Create {type === 'sub_admin' ? 'sub admin' : type === 'checker' ? 'checker' : 'website user'}</Button>
         </>
       }
     >
       <form id="create-user-form" onSubmit={submit} noValidate className="space-y-4">
         <fieldset>
           <legend className="text-sm font-semibold text-slate-800 mb-2">Account type</legend>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-3">
             {([
-              ['sub_admin', 'Sub admin', 'Signs in to this admin panel. Can moderate posts, users and messages.', ShieldCheck],
+              ['sub_admin', 'Sub admin', 'Admin panel. Hides posts, manages website users and messages.', ShieldCheck],
+              ['checker', 'Checker', 'Admin panel. Approves or rejects new posts before they go live.', ClipboardCheck],
               ['website_user', 'Website user', 'A normal LostFound account for the public website.', User],
             ] as const).map(([value, label, desc, Icon]) => (
               <label key={value} className={`flex gap-3 rounded-xl border p-3 cursor-pointer ${type === value ? 'border-slate-900 ring-1 ring-slate-900' : 'border-slate-300 hover:bg-slate-50'}`}>
@@ -106,7 +109,7 @@ export default function CreateUserDialog({ defaultType, onClose, onCreated }: { 
           label="Temporary password"
           required
           error={errors.password || errors.newPassword}
-          hint={type === 'sub_admin' ? 'At least 10 characters with letters and numbers. They must change it at first sign-in.' : 'At least 8 characters.'}
+          hint={isAdminType(type) ? 'At least 10 characters with letters and numbers. They must change it at first sign-in.' : 'At least 8 characters.'}
         >
           {(p) => (
             <div className="flex gap-2">

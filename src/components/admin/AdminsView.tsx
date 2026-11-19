@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Ban, CheckCircle2, Copy, KeyRound, LockOpen, UserPlus } from 'lucide-react';
 import { adminApi, AdminApiError, fmtDate, generatePassword, timeAgo } from '@/lib/admin/client';
-import { ADMIN_ROLE_LABEL, AdminProfile } from '@/lib/admin/permissions';
+import { ADMIN_ROLE_LABEL, ASSIGNABLE_ROLES, AdminProfile, AdminRole } from '@/lib/admin/permissions';
 import { Badge, Button, Card, ErrorBox, Modal, PageHeader, Spinner, useLoader, useToast } from './ui';
 import { useAdmin } from './AdminShell';
 import CreateUserDialog from './CreateUserDialog';
@@ -35,11 +35,24 @@ export default function AdminsView({ openCreate }: { openCreate?: boolean }) {
     }
   };
 
+  const setRole = async (row: AdminRow, role: AdminRole) => {
+    setBusy(true);
+    try {
+      await adminApi(`/admins/${encodeURIComponent(row.id)}`, { method: 'PATCH', json: { action: 'set_role', role } });
+      toast(`${row.name} is now a ${ADMIN_ROLE_LABEL[role].toLowerCase()}`);
+      reload();
+    } catch (e) {
+      toast(e instanceof AdminApiError ? e.message : 'Could not change role', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <>
       <PageHeader
         title="Admin users"
-        description="People who can sign in to this admin panel. Sub admins can moderate posts, website users and contact messages; only super admins manage pages, admins and the activity log."
+        description="People who can sign in to this admin panel. Checkers approve new posts before they go live; sub admins moderate posts, website users and messages; only super admins manage pages, admins and the activity log."
         actions={<Button variant="primary" onClick={() => setCreating(true)}><UserPlus className="w-4 h-4" /> Create user</Button>}
       />
       {error && <ErrorBox error={error} onRetry={reload} />}
@@ -67,7 +80,21 @@ export default function AdminsView({ openCreate }: { openCreate?: boolean }) {
                       <p className="font-semibold text-slate-900">{a.name}{a.id === me.id && <span className="text-slate-500 font-normal"> (you)</span>}</p>
                       <p className="text-xs text-slate-500">{a.email}</p>
                     </td>
-                    <td className="px-4 py-3"><Badge tone={a.role === 'super_admin' ? 'purple' : 'blue'}>{ADMIN_ROLE_LABEL[a.role]}</Badge></td>
+                    <td className="px-4 py-3">
+                      {editable ? (
+                        <select
+                          aria-label={`Role for ${a.name}`}
+                          value={a.role}
+                          disabled={busy}
+                          onChange={(e) => setRole(a, e.target.value as AdminRole)}
+                          className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm"
+                        >
+                          {ASSIGNABLE_ROLES.map((r) => <option key={r} value={r}>{ADMIN_ROLE_LABEL[r]}</option>)}
+                        </select>
+                      ) : (
+                        <Badge tone={a.role === 'super_admin' ? 'purple' : a.role === 'checker' ? 'green' : 'blue'}>{ADMIN_ROLE_LABEL[a.role]}</Badge>
+                      )}
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap text-slate-600">{a.lastLoginAt ? timeAgo(a.lastLoginAt) : 'Never'}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-slate-600">
                       {fmtDate(a.createdAt, false)}
@@ -107,21 +134,23 @@ export default function AdminsView({ openCreate }: { openCreate?: boolean }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <tr><th scope="col" className="py-2 pr-4">Area</th><th scope="col" className="py-2 pr-4">Super admin</th><th scope="col" className="py-2">Sub admin</th></tr>
+              <tr><th scope="col" className="py-2 pr-4">Area</th><th scope="col" className="py-2 pr-4">Super admin</th><th scope="col" className="py-2 pr-4">Checker</th><th scope="col" className="py-2">Sub admin</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {[
-                ['Dashboard', 'Yes', 'Yes'],
-                ['Posts: view, hide and show', 'Yes', 'Yes'],
-                ['Posts: delete permanently', 'Yes', 'No'],
-                ['Website users: view, disable and enable', 'Yes', 'Yes'],
-                ['Create users (sub admins, website users)', 'Yes', 'No'],
-                ['Contact messages', 'Yes', 'Yes'],
-                ['Pages & company details', 'Yes', 'No'],
-                ['Admin users', 'Yes', 'No'],
-                ['Activity log', 'Yes', 'No'],
-              ].map(([area, s, sub]) => (
-                <tr key={area}><td className="py-2 pr-4 text-slate-800">{area}</td><td className="py-2 pr-4">{s}</td><td className="py-2">{sub}</td></tr>
+                ['Dashboard', 'Yes', 'Yes', 'Yes'],
+                ['Review queue: approve / reject new posts', 'Yes', 'Yes', 'No'],
+                ['Posts: view', 'Yes', 'Yes', 'Yes'],
+                ['Posts: hide and show', 'Yes', 'No', 'Yes'],
+                ['Posts: delete permanently', 'Yes', 'No', 'No'],
+                ['Website users: view, disable and enable', 'Yes', 'No', 'Yes'],
+                ['Create users (sub admins, checkers, website users)', 'Yes', 'No', 'No'],
+                ['Contact messages', 'Yes', 'No', 'Yes'],
+                ['Pages & company details', 'Yes', 'No', 'No'],
+                ['Admin users', 'Yes', 'No', 'No'],
+                ['Activity log', 'Yes', 'No', 'No'],
+              ].map(([area, s, c, sub]) => (
+                <tr key={area}><td className="py-2 pr-4 text-slate-800">{area}</td><td className="py-2 pr-4">{s}</td><td className="py-2 pr-4">{c}</td><td className="py-2">{sub}</td></tr>
               ))}
             </tbody>
           </table>

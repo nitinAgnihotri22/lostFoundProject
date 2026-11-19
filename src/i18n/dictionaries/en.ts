@@ -180,6 +180,10 @@ export const en = {
   },
 
   item: {
+    reviewPendingTitle: 'Waiting for review',
+    reviewPendingBody: 'Thanks! Our team checks every new post before it goes live. Only you can see it until it is approved – usually within a few hours.',
+    reviewRejectedTitle: 'This post was not approved',
+    reviewRejectedBody: 'Reason: {reason}. It is not visible to others. You can delete it and post again with the details corrected.',
     bannerClaimed: 'A claim on this item was approved – it is on its way back to its owner.',
     bannerResolved: 'This report was closed by the poster.',
     unavailable: 'This item is no longer available.',
@@ -430,6 +434,8 @@ export const en = {
   },
 
   profile: {
+    underReview: 'Under review',
+    notApproved: 'Not approved',
     hiddenByAdmin: 'Removed by moderator',
     messages: 'Messages',
     googleAccount: 'Google account',
@@ -464,6 +470,23 @@ export const en = {
     updateFailed: 'Could not update the claim.',
     autoRejected: '{count} other pending claim(s) on this item were automatically rejected.',
     poster: 'Poster',
+  },
+
+  cookies: {
+    title: 'We use cookies',
+    body: 'We use necessary cookies to keep you signed in and remember your language. With your permission we may also use analytics and advertising cookies. You can change your choice any time from “Cookie settings” at the bottom of the page.',
+    learnMore: 'Read our cookie policy',
+    acceptAll: 'Accept all',
+    necessaryOnly: 'Necessary only',
+    customise: 'Customise',
+    save: 'Save my choices',
+    necessary: 'Necessary',
+    necessaryDesc: 'Sign-in, language and security. Always on – the site can’t work without them.',
+    analytics: 'Analytics',
+    analyticsDesc: 'Helps us understand how the site is used so we can improve it. Not used yet.',
+    ads: 'Advertising',
+    adsDesc: 'Lets us show relevant ads that keep LostFound free. Not used yet.',
+    settings: 'Cookie settings',
   },
 
   footer: {

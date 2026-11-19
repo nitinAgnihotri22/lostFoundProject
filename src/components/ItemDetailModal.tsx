@@ -264,6 +264,20 @@ export default function ItemDetailModal({ item: initialItem, currentUser, onClos
             )}
           </div>
 
+          {/* Maker-checker: the poster sees why their post isn't public yet. */}
+          {isOwner && (detail ?? item).reviewStatus === 'pending' && (
+            <div role="status" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              <p className="font-bold">{t('item.reviewPendingTitle')}</p>
+              <p className="mt-0.5">{t('item.reviewPendingBody')}</p>
+            </div>
+          )}
+          {isOwner && (detail ?? item).reviewStatus === 'rejected' && (
+            <div role="status" className="rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
+              <p className="font-bold">{t('item.reviewRejectedTitle')}</p>
+              <p className="mt-0.5">{t('item.reviewRejectedBody', { reason: (detail ?? item).reviewNote || '—' })}</p>
+            </div>
+          )}
+
           {/* Title & Metadata */}
           <div>
             <h2 id="item-title" className="text-2xl font-bold text-gray-900 leading-snug">{item.title}</h2>

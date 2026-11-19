@@ -2,7 +2,7 @@
 // PATCH  /api/items/{id} – poster closes/reopens the item ({ status: 'resolved' | 'active' }).
 // DELETE /api/items/{id} – poster deletes the item (claims and chats go with it).
 import { NextRequest, NextResponse } from 'next/server';
-import { deleteItem, getItem, listClaimsForItem, updateItemStatus } from '@/lib/db';
+import { deleteItem, getItem, isPublicItem, listClaimsForItem, updateItemStatus } from '@/lib/db';
 import { fail, optionalAuth, requireAuth } from '@/lib/session';
 import { forViewer, readJson, routeError } from '@/lib/itemView';
 import { ItemDetail } from '@/types';
@@ -15,8 +15,8 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     const viewer = await optionalAuth(request);
     const item = await getItem(id);
     if (!item) return fail(404, 'Item not found');
-    // Hidden by an admin: gone for everyone except the poster.
-    if (item.hiddenByAdmin && viewer?.id !== item.userId) return fail(404, 'Item not found');
+    // Under review, rejected or hidden by an admin: only the poster can see it.
+    if (!isPublicItem(item) && viewer?.id !== item.userId) return fail(404, 'Item not found');
 
     const claims = await listClaimsForItem(item.id);
     const isOwner = !!viewer && viewer.id === item.userId;

@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///Users/apple/Desktop/Nitin/LostFound/src/app/admin/layout.tsx"],"sourcesContent":["// /admin – separate from the public site: no site header/footer, never indexed.\n// The admin panel is English-only, whatever language the website is set to.\nimport type { Metadata } from 'next';\n\nexport const metadata: Metadata = {\n  title: { default: 'Admin', template: '%s · LostFound Admin' },\n  robots: { index: false, follow: false, nocache: true },\n};\n\nexport default function AdminRootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <div lang=\"en\" className=\"flex-1 flex flex-col min-h-screen bg-slate-100\">\n      {children}\n    </div>\n  );\n}\n"],"names":["metadata","title","default","template","robots","index","follow","nocache","AdminRootLayout","children","lang","className"],"mappings":"AAAA,gFAAgF;AAChF,4EAA4E;;;;;;;;;AAGrE,MAAMA,WAAqB;IAChCC,OAAO;QAAEC,SAAS;QAASC,UAAU;IAAuB;IAC5DC,QAAQ;QAAEC,OAAO;QAAOC,QAAQ;QAAOC,SAAS;IAAK;AACvD;AAEe,SAASC,gBAAgB,EAAEC,QAAQ,EAAiC;IACjF,qBACE,8OAAC;QAAIC,MAAK;QAAKC,WAAU;kBACtBF;;;;;;AAGP"}}]
+}

@@ -1,12 +1,12 @@
 // Admin accounts (super admin only)
 // GET  /api/admin/admins – every admin account.
-// POST /api/admin/admins – create a sub admin: { name, email, password }.
+// POST /api/admin/admins – create an admin: { name, email, password, role: 'sub_admin' | 'checker' }.
 //   The new admin must change this password at first sign-in.
 import { NextRequest, NextResponse } from 'next/server';
 import {
   adminFail, adminRouteError, audit, findAdminByEmail, insertAdmin, listAdmins, requireAdmin, toAdminProfile,
 } from '@/lib/admin/server';
-import { passwordProblem } from '@/lib/admin/permissions';
+import { ASSIGNABLE_ROLES, AdminRole, passwordProblem } from '@/lib/admin/permissions';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -31,14 +31,16 @@ export async function POST(req: NextRequest) {
     const name = String(body.name ?? '').trim();
     const email = String(body.email ?? '').trim().toLowerCase();
     const password = String(body.password ?? '');
+    const role: AdminRole = body.role === undefined ? 'sub_admin' : body.role;
+    if (!ASSIGNABLE_ROLES.includes(role)) return adminFail(400, 'role must be "sub_admin" or "checker".', { field: 'role' });
     if (name.length < 2 || name.length > 100) return adminFail(400, 'Name must be 2–100 characters.', { field: 'name' });
     if (!EMAIL_RE.test(email)) return adminFail(400, 'Enter a valid email address.', { field: 'email' });
     const problem = passwordProblem(password);
     if (problem) return adminFail(400, problem, { field: 'password' });
     if (await findAdminByEmail(email)) return adminFail(409, 'An admin with this email already exists.', { field: 'email' });
 
-    const admin = await insertAdmin({ name, email, password, role: 'sub_admin', createdBy: auth.admin.id, mustChangePassword: true });
-    await audit(auth.admin, 'admin.create', { type: 'admin', id: admin.id }, { email, role: 'sub_admin' }, req);
+    const admin = await insertAdmin({ name, email, password, role, createdBy: auth.admin.id, mustChangePassword: true });
+    await audit(auth.admin, 'admin.create', { type: 'admin', id: admin.id }, { email, role }, req);
     return NextResponse.json({ success: true, data: toAdminProfile(admin) }, { status: 201 });
   } catch (e: any) {
     if (e?.code === '23505') return adminFail(409, 'An admin with this email already exists.', { field: 'email' });

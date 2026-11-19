@@ -56,7 +56,7 @@ export function routeError(e: unknown, label: string): NextResponse {
       {
         success: false,
         code: 'MIGRATION_REQUIRED',
-        error: 'This feature is not set up on the database yet. Run supabase/migrations/05_end_to_end.sql in the Supabase SQL editor.',
+        error: 'This feature is not set up on the database yet. Run the latest files in supabase/migrations (up to 08_post_review.sql) in the Supabase SQL editor.',
       },
       { status: 503 }
     );

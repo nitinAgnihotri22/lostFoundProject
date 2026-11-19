@@ -46,6 +46,10 @@ export interface Item {
   /** Removed from the website by an admin (only the poster still sees it). */
   hiddenByAdmin?: boolean;
   hiddenReason?: string;
+  /** Maker-checker review: only 'approved' posts are public. Missing = approved (pre-migration rows). */
+  reviewStatus?: 'pending' | 'approved' | 'rejected';
+  /** Why the reviewer rejected the post (shown to the poster). */
+  reviewNote?: string;
 }
 
 /** GET /api/items/{id} – item plus what the viewer is allowed to see. */

@@ -5,7 +5,7 @@
 //   - the poster messages one of the item's claimants (recipientId required)
 import { NextRequest, NextResponse } from 'next/server';
 import { fail, requireAuth } from '@/lib/session';
-import { findOrCreateConversation, getItem, getUsersByIds, insertMessage, listClaimsForItem, listConversationsForUser } from '@/lib/db';
+import { isPublicItem, findOrCreateConversation, getItem, getUsersByIds, insertMessage, listClaimsForItem, listConversationsForUser } from '@/lib/db';
 import { readJson, routeError } from '@/lib/itemView';
 import { LIMITS, str } from '@/lib/validation';
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const itemId = str(body.itemId);
     if (!itemId) return fail(400, 'itemId is required.');
     const item = await getItem(itemId);
-    if (!item || item.hiddenByAdmin) return fail(404, 'Item not found.');
+    if (!item || !isPublicItem(item)) return fail(404, 'Item not found.');
 
     const isPoster = item.userId === user.id;
     let recipientId = str(body.recipientId);

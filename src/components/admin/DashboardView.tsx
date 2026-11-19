@@ -11,8 +11,9 @@ interface Stats {
   users: { total: number; disabled: number; newThisWeek: number };
   items: { total: number; live: number; hidden: number; closed: number; newThisWeek: number; found: number; lost: number };
   claims: { pending: number; approved: number };
+  review: { pending: number };
   messages: { new: number };
-  recentItems: { id: string; title: string; type: string; city: string | null; address: string; status: string; is_hidden: boolean; created_at: string; user_name: string }[];
+  recentItems: { id: string; title: string; type: string; city: string | null; address: string; status: string; is_hidden: boolean; review_status?: string; created_at: string; user_name: string }[];
   recentUsers: { id: string; name: string; email: string; status: string; created_at: string; role_source: string }[];
   topCities: { city: string; count: number }[];
   perDay: { day: string; found: number; lost: number }[];
@@ -73,11 +74,21 @@ export default function DashboardView() {
       {loading && !data && <Spinner />}
       {data && (
         <div className="space-y-6">
+          {data.review.pending > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              <span><strong>{n(data.review.pending)} post{data.review.pending === 1 ? '' : 's'}</strong> waiting for review – not visible on the website yet.</span>
+              {can('posts.review') ? (
+                <Link href="/admin/review" className="font-bold underline">Open review queue</Link>
+              ) : (
+                <span className="text-xs">A checker or super admin needs to approve them.</span>
+              )}
+            </div>
+          )}
           <div className="grid gap-4 grid-cols-2 xl:grid-cols-4">
             <Stat label="Live posts" value={data.items.live} sub={`${n(data.items.newThisWeek)} new this week · ${n(data.items.total)} total`} icon={Package} href="/admin/posts?visibility=visible&status=active" />
             <Stat label="Hidden posts" value={data.items.hidden} sub="Removed from the website" icon={EyeOff} href="/admin/posts?visibility=hidden" tone={data.items.hidden ? 'amber' : 'slate'} />
-            <Stat label="Website users" value={data.users.total} sub={`${n(data.users.newThisWeek)} joined this week`} icon={Users} href="/admin/users" />
-            <Stat label="Disabled users" value={data.users.disabled} icon={AlertTriangle} href="/admin/users?status=disabled" tone={data.users.disabled ? 'red' : 'slate'} />
+            <Stat label="Website users" value={data.users.total} sub={`${n(data.users.newThisWeek)} joined this week`} icon={Users} href={can('users.view') ? '/admin/users' : undefined} />
+            <Stat label="Disabled users" value={data.users.disabled} icon={AlertTriangle} href={can('users.view') ? '/admin/users?status=disabled' : undefined} tone={data.users.disabled ? 'red' : 'slate'} />
             <Stat label="Pending claims" value={data.claims.pending} sub={`${n(data.claims.approved)} approved so far`} icon={Package} />
             <Stat label="Found / lost" value={data.items.found} sub={`${n(data.items.found)} found · ${n(data.items.lost)} lost`} icon={MapPin} />
             <Stat label="Closed posts" value={data.items.closed} sub="Returned or closed by the poster" icon={Package} />
@@ -119,6 +130,8 @@ export default function DashboardView() {
                     </div>
                     <div className="flex gap-1.5 shrink-0">
                       <Badge tone={i.type === 'found' ? 'blue' : 'amber'}>{i.type}</Badge>
+                      {i.review_status === 'pending' && <Badge tone="amber">in review</Badge>}
+                      {i.review_status === 'rejected' && <Badge tone="red">rejected</Badge>}
                       {i.is_hidden && <Badge tone="red">hidden</Badge>}
                     </div>
                   </li>

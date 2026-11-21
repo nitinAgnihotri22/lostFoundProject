@@ -56,7 +56,7 @@ export function privacyPolicy(lang: Lang, c: SiteSettings = siteConfig): Doc {
           'हम सेवा चलाने के लिए इन "डेटा प्रोसेसर" का उपयोग करते हैं, जो केवल हमारे निर्देशों पर काम करते हैं:',
           [
             'Supabase – डेटाबेस, फ़ाइल भंडारण और प्रमाणीकरण।',
-            'Google – "Google के साथ जारी रखें" साइन इन।',
+            'Google – "Google के साथ जारी रखें" साइन इन; Google AdSense विज्ञापन और Google Analytics, केवल तभी जब आपने उन कुकीज़ की अनुमति दी हो।',
             'OpenStreetMap (Nominatim) – पता खोजना और निर्देशांकों से पता निकालना। इसमें आपका खोज शब्द या चुने गए निर्देशांक भेजे जाते हैं।',
             'हमारा होस्टिंग प्रदाता – वेबसाइट चलाने के लिए।',
           ],
@@ -68,8 +68,12 @@ export function privacyPolicy(lang: Lang, c: SiteSettings = siteConfig): Doc {
             ['lf_lang (कुकी)', 'आपकी चुनी हुई भाषा (English/हिन्दी) याद रखती है।'],
             ['lf_consent (कुकी)', 'कुकी के बारे में आपकी पसंद 180 दिनों तक याद रखती है। ज़रूरी।'],
             ['lf_a11y (ब्राउज़र भंडारण)', 'आपकी सुगम्यता सेटिंग (अक्षर का आकार, रंग आदि) याद रखती है। यह हमारे सर्वर पर नहीं भेजी जाती।'],
+            ['lf_ab (कुकी)', '0 से 99 तक की एक यादृच्छिक संख्या, जो तय करती है कि यह ब्राउज़र उस छोटे समूह में है या नहीं जिसे विज्ञापन नहीं दिखते, ताकि हम जाँच सकें कि विज्ञापन वस्तुएँ लौटाने में बाधा न बनें। 12 महीने।'],
+            ['lf_vid (ब्राउज़र भंडारण)', 'केवल एनालिटिक्स: एक यादृच्छिक आईडी, जिससे हम बिना यह जाने कि आप कौन हैं, विज़िट और क्रियाएँ गिन पाते हैं। एनालिटिक्स बंद करने पर हटा दी जाती है।'],
+            ['Google AdSense कुकीज़', 'केवल विज्ञापन: विज्ञापन दिखाने और मापने के लिए Google द्वारा सेट। देखें google.com/policies/technologies/ads।'],
+            ['Google Analytics कुकीज़ (_ga…)', 'केवल एनालिटिक्स, यदि हम Google Analytics चालू करें: विज़िट गिनने के लिए Google द्वारा सेट।'],
           ] },
-          'हम अभी विज्ञापन या ट्रैकिंग कुकीज़ का उपयोग नहीं करते। यदि शुरू करेंगे, तो वे तभी लोड होंगी जब आपने कुकी बैनर में अनुमति दी हो। आप हर पेज के नीचे “कुकी सेटिंग” से कभी भी अपनी पसंद बदल सकते हैं।',
+          'एनालिटिक्स और विज्ञापन कुकीज़ तभी लोड होती हैं जब आपने कुकी बैनर में अनुमति दी हो। विज्ञापन केवल सार्वजनिक पेजों (वस्तुओं की सूची और वस्तु विवरण) पर दिखते हैं, दावा फ़ॉर्म, चैट, आपकी प्रोफ़ाइल या साइन-इन पर कभी नहीं। आप हर पेज के नीचे “कुकी सेटिंग” से कभी भी अपनी पसंद बदल सकते हैं।',
         ] },
         { id: 'retention', title: '8. हम डेटा कितने समय तक रखते हैं', blocks: [
           [
@@ -159,7 +163,7 @@ export function privacyPolicy(lang: Lang, c: SiteSettings = siteConfig): Doc {
         'We use these "Data Processors" to run the service. They act only on our instructions:',
         [
           'Supabase – database, file storage and authentication.',
-          'Google – "Continue with Google" sign-in.',
+          'Google – "Continue with Google" sign-in; Google AdSense ads and Google Analytics, only if you allowed those cookies.',
           'OpenStreetMap (Nominatim) – address search and turning coordinates into addresses. Your search text or chosen coordinates are sent to it.',
           'Our hosting provider – to run the website.',
         ],
@@ -171,8 +175,12 @@ export function privacyPolicy(lang: Lang, c: SiteSettings = siteConfig): Doc {
           ['lf_lang (cookie)', 'Remembers your language (English/हिन्दी).'],
           ['lf_consent (cookie)', 'Remembers your cookie choices for 180 days. Essential.'],
           ['lf_a11y (browser storage)', 'Remembers your accessibility settings (text size, colours, etc.). It is never sent to our servers.'],
+          ['lf_ab (cookie)', 'A random number from 0 to 99 that decides whether this browser is in a small group that sees no ads, so we can check that ads don’t get in the way of returning items. 12 months.'],
+          ['lf_vid (browser storage)', 'Analytics only: a random id that lets us count visits and actions without knowing who you are. Deleted when you turn analytics off.'],
+          ['Google AdSense cookies', 'Advertising only: set by Google to show and measure ads. See google.com/policies/technologies/ads.'],
+          ['Google Analytics cookies (_ga…)', 'Analytics only, if we turn Google Analytics on: set by Google to count visits.'],
         ] },
-        'We do not use advertising or tracking cookies today. If we start, they will only load if you allowed them in the cookie banner. You can change your choice any time with “Cookie settings” at the bottom of every page.',
+        'Analytics and advertising cookies load only if you allowed them in the cookie banner. Ads are shown only on public pages (the item list and item details) and never on claim forms, chat, your profile or sign-in. You can change your choice any time with “Cookie settings” at the bottom of every page.',
       ] },
       { id: 'retention', title: '8. How long we keep data', blocks: [
         [

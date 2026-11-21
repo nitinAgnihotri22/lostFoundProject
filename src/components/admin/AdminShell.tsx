@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  ClipboardCheck, ExternalLink, FileText, Inbox, LayoutDashboard, LogOut, Menu, Package, ScrollText, ShieldCheck, UserCog, Users, X,
+  BarChart3, ClipboardCheck, ExternalLink, Megaphone, FileText, Inbox, LayoutDashboard, LogOut, Menu, Package, ScrollText, ShieldCheck, UserCog, Users, X,
 } from 'lucide-react';
 import { ADMIN_ROLE_LABEL, AdminProfile, Permission, can } from '@/lib/admin/permissions';
 import { cx, ToastProvider } from './ui';
@@ -22,6 +22,8 @@ const NAV: { href: string; label: string; icon: React.ElementType; perm: Permiss
   { href: '/admin/posts', label: 'Posts', icon: Package, perm: 'posts.view' },
   { href: '/admin/users', label: 'Website users', icon: Users, perm: 'users.view' },
   { href: '/admin/messages', label: 'Contact messages', icon: Inbox, perm: 'messages.view' },
+  { href: '/admin/analytics', label: 'Analytics', icon: BarChart3, perm: 'analytics.view' },
+  { href: '/admin/ads', label: 'Ads settings', icon: Megaphone, perm: 'ads.manage' },
   { href: '/admin/pages', label: 'Pages & company', icon: FileText, perm: 'pages.manage' },
   { href: '/admin/admins', label: 'Admin users', icon: ShieldCheck, perm: 'admins.manage' },
   { href: '/admin/audit', label: 'Activity log', icon: ScrollText, perm: 'audit.view' },

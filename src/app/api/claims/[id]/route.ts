@@ -1,7 +1,8 @@
 // PATCH /api/claims/{id} – the item's poster approves or rejects a claim.
 // Approving marks the item "claimed" and auto-rejects every other pending claim on it.
 // A reason is mandatory when rejecting; it is shown to the claimant.
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
+import { recordServerEvent } from '@/lib/analytics';
 import { fail, requireAuth } from '@/lib/session';
 import { getClaim, getItem, rejectOtherPendingClaims, updateClaimStatus, updateItemStatus } from '@/lib/db';
 import { readJson, routeError } from '@/lib/itemView';
@@ -44,7 +45,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     let autoRejected = 0;
     if (status === 'approved') await updateItemStatus(item.id, 'claimed');
     const updated = await updateClaimStatus(id, status, reason || null);
-    if (status === 'approved') autoRejected = await rejectOtherPendingClaims(item.id, id, AUTO_REJECT_REASON);
+    if (status === 'approved') {
+      autoRejected = await rejectOtherPendingClaims(item.id, id, AUTO_REJECT_REASON);
+      // The claimant's ads group, not the poster's, is what the A/B test compares – so no variant here.
+      after(() => recordServerEvent(request, 'claim_approved', { userId: claim.claimantId, variant: 'none', props: { category: item.category } }));
+    }
 
     return NextResponse.json({
       success: true,

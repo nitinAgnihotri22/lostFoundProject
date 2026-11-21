@@ -16,6 +16,9 @@ import ReportItemModal from '@/components/ReportItemModal';
 import AuthModal from '@/components/AuthModal';
 import LogoutModal from '@/components/LogoutModal';
 import GlobalLoader from '@/components/GlobalLoader';
+import AdSlot from '@/components/ads/AdSlot';
+import { useAds } from '@/components/ads/AdsProvider';
+import { track } from '@/lib/track';
 import { isOwnItem } from '@/lib/ownership';
 import { useI18n } from '@/i18n/LanguageProvider';
 import { CATEGORIES } from '@/lib/validation';
@@ -27,6 +30,8 @@ const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: f
 
 export default function HomePage() {
   const { t } = useI18n();
+  const ads = useAds();
+  const infeedEvery = ads?.settings.infeedEvery ?? 8;
   // Alerts fire from async callbacks; read the latest translator through a ref so they use the current language.
   const tRef = useRef(t);
   useEffect(() => {
@@ -306,6 +311,7 @@ export default function HomePage() {
       setShowAuthModal(true);
       return;
     }
+    track('report_started', { type });
     setReportModalType(type);
   };
 
@@ -328,6 +334,7 @@ export default function HomePage() {
       alert(t('errors.itemNotOpen'));
       return;
     }
+    track('claim_started', { category: item.category });
     setClaimTargetItem(item);
   };
 
@@ -576,6 +583,8 @@ export default function HomePage() {
           </div>
         ) : viewMode === 'split' ? (
           /* Split View (Cards on left, Interactive Map on right) */
+          <>
+          <AdSlot slot="homeTop" kind="leaderboard" className="mb-6" />
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filteredItems.map((item) => (
@@ -607,22 +616,31 @@ export default function HomePage() {
                   height="580px"
                 />
               </div>
+              <AdSlot slot="homeSplit" kind="rectangle" className="hidden lg:block mt-4" />
             </div>
           </div>
+          </>
         ) : viewMode === 'grid' ? (
-          /* Full Grid View */
+          /* Full Grid View – an in-feed ad card after every `infeedEvery` items */
+          <>
+          <AdSlot slot="homeTop" kind="leaderboard" className="mb-6" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {filteredItems.map((item) => (
-              <ItemCard
-                key={item.id}
-                item={item}
-                onSelect={(i) => setSelectedItem(i)}
-                onClaimClick={(i) => handleOpenClaim(i)}
-                isOwner={isOwnItem(item, currentUser)}
-                myClaim={item.myClaim}
-              />
+            {filteredItems.map((item, index) => (
+              <React.Fragment key={item.id}>
+                <ItemCard
+                  item={item}
+                  onSelect={(i) => setSelectedItem(i)}
+                  onClaimClick={(i) => handleOpenClaim(i)}
+                  isOwner={isOwnItem(item, currentUser)}
+                  myClaim={item.myClaim}
+                />
+                {(index + 1) % infeedEvery === 0 && index + 1 < filteredItems.length && (
+                  <AdSlot slot="homeInfeed" kind="infeed" className="bg-white rounded-2xl border border-gray-200 p-3" />
+                )}
+              </React.Fragment>
             ))}
           </div>
+          </>
         ) : (
           /* Full Map View */
           <div className="bg-white p-3 rounded-3xl border border-gray-200 shadow-sm">
@@ -642,6 +660,7 @@ export default function HomePage() {
         <ItemDetailModal
           key={selectedItem.id}
           item={selectedItem}
+          showAd
           currentUser={currentUser}
           onClose={() => setSelectedItem(null)}
           onClaim={(item) => {

@@ -63,7 +63,7 @@ export const siteConfig: SiteConfig = {
   jurisdiction: { en: 'Pune, Maharashtra', hi: 'पुणे, महाराष्ट्र' }, // TODO
 
   /** Shown as "Last updated" on the legal pages. Update whenever the text changes. */
-  legalLastUpdated: '2026-11-18',
+  legalLastUpdated: '2026-11-22',
 };
 
 export const formattedAddress = (c: SiteSettings = siteConfig) => {

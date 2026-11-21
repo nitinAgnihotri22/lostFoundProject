@@ -32,6 +32,8 @@ export const PERMISSIONS = {
   'admins.manage': SUPER, // create / disable / reset sub admins
   'pages.manage': SUPER, // static pages + company details
   'audit.view': SUPER,
+  'analytics.view': BOTH, // traffic, conversions and the ads A/B test
+  'ads.manage': SUPER, // AdSense + Google Analytics settings
 } as const satisfies Record<string, AdminRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

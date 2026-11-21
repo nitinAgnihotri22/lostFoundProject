@@ -43,6 +43,7 @@ const ACTION_LABEL: Record<string, string> = {
   'page.revert': 'Removed custom page text',
   'settings.update': 'Saved company details',
   'settings.reset': 'Reset company details',
+  'ads.update': 'Saved ads & analytics settings',
 };
 
 const FILTERS: [string, string][] = [
@@ -53,6 +54,7 @@ const FILTERS: [string, string][] = [
   ['account.', 'Own account changes'],
   ['page.', 'Pages'],
   ['settings.', 'Company details'],
+  ['ads.', 'Ads settings'],
   ['message.', 'Contact messages'],
 ];
 

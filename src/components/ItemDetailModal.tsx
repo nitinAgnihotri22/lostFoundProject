@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import PrintFlyerModal from './PrintFlyerModal';
 import ClaimReviewCard from './ClaimReviewCard';
+import AdSlot from './ads/AdSlot';
+import { track } from '@/lib/track';
 
 interface ItemDetailModalProps {
   item: Item | null;
@@ -25,6 +27,8 @@ interface ItemDetailModalProps {
   onMessage?: (conversationId: string) => void;
   /** A guest tried to do something that needs an account. */
   onRequireLogin?: (message: string) => void;
+  /** Show the item-details ad (public home page only, never on profile pages). */
+  showAd?: boolean;
 }
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1584824486509-112e4181ff6b?w=800&auto=format&fit=crop&q=80';
@@ -41,7 +45,7 @@ const STATUS_LABEL: Record<Item['status'], TKey> = {
   resolved: 'common.statusResolved',
 };
 
-export default function ItemDetailModal({ item: initialItem, currentUser, onClose, onClaim, onChanged, onMessage, onRequireLogin }: ItemDetailModalProps) {
+export default function ItemDetailModal({ item: initialItem, currentUser, onClose, onClaim, onChanged, onMessage, onRequireLogin, showAd = false }: ItemDetailModalProps) {
   const { t, lang, formatDate } = useI18n();
   const [detail, setDetail] = useState<ItemDetail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -65,6 +69,14 @@ export default function ItemDetailModal({ item: initialItem, currentUser, onClos
   useEffect(() => {
     load();
   }, [load]);
+
+  // Analytics: someone other than the poster opened this item.
+  const viewerId = currentUser?.id;
+  const posterId = initialItem?.userId;
+  const category = initialItem?.category;
+  useEffect(() => {
+    if (itemId && viewerId !== posterId) track('item_view', { category: category ?? null });
+  }, [itemId, viewerId, posterId, category]);
 
   if (!initialItem) return null;
 
@@ -402,6 +414,9 @@ export default function ItemDetailModal({ item: initialItem, currentUser, onClos
               </div>
             )}
           </div>
+
+          {/* Ad: public view only – never for the poster or someone who claimed it */}
+          {showAd && !isOwner && !myClaim && <AdSlot slot="itemDetail" kind="responsive" className="pt-2" />}
 
           {/* Claims received – full list only for the person who posted the item */}
           {isOwner && (

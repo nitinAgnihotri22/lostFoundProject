@@ -1,7 +1,8 @@
 // GET  /api/items – browse active items (public; a token adds `myClaim` per item).
 //      ?mine=1 (token required) returns the caller's own items in every status.
 // POST /api/items – report a found/lost item (token required).
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
+import { recordServerEvent } from '@/lib/analytics';
 import { insertItem, listItems } from '@/lib/db';
 import { calculateDistanceKm } from '@/lib/geo';
 import { optionalAuth, requireAuth } from '@/lib/session';
@@ -102,6 +103,7 @@ export async function POST(request: NextRequest) {
       verificationQuestions: optionalQuestions(body.verificationQuestions, type === 'found'),
     });
 
+    after(() => recordServerEvent(request, 'item_posted', { userId: user.id, props: { type: item.type, category: item.category } }));
     return NextResponse.json({ success: true, data: { ...forViewer(item, user.id), claimCount: 0 } }, { status: 201 });
   } catch (e) {
     return routeError(e, 'items POST');

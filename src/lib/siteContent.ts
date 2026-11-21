@@ -9,6 +9,7 @@ import { cache } from 'react';
 import { isMissingSchema, supabaseAdmin } from '@/lib/db';
 import { siteConfig, type SiteConfig, type SiteSettings } from '@/lib/siteConfig';
 import type { Lang } from '@/i18n/config';
+import { DEFAULT_ADS_SETTINGS, effectiveAdsSettings, sanitizeAdsSettings, type AdsSettings } from '@/lib/monetization';
 
 export const PAGE_SLUGS = ['privacy', 'terms', 'about', 'contact'] as const;
 export type PageSlug = (typeof PAGE_SLUGS)[number];
@@ -151,3 +152,40 @@ export function mapPageRow(row: any): PageOverride {
 
 /** YYYY-MM-DD for the "Last updated" line. */
 export const isoDay = (iso: string) => iso.slice(0, 10);
+
+// -------------------------------------------------------------------
+// Ads + analytics settings (site_settings key "ads"), edited at /admin/ads.
+// -------------------------------------------------------------------
+export interface AdsSettingsResult {
+  /** As saved (no env fallbacks) – for the admin form. */
+  saved: AdsSettings;
+  /** With env fallbacks – what the website uses. */
+  effective: AdsSettings;
+  updatedAt: string | null;
+}
+
+const toAdsResult = (value: unknown, updatedAt: string | null): AdsSettingsResult => {
+  const saved = sanitizeAdsSettings(value);
+  return { saved, effective: effectiveAdsSettings(saved), updatedAt };
+};
+
+/** Straight from the database (no cache; errors throw). For the admin form. */
+export async function readAdsSettingsFresh(): Promise<AdsSettingsResult> {
+  const { data, error } = await supabaseAdmin.from('site_settings').select('value, updated_at').eq('key', 'ads').maybeSingle();
+  if (error) throw error;
+  return toAdsResult(data?.value ?? DEFAULT_ADS_SETTINGS, data ? String(data.updated_at) : null);
+}
+
+/** Cached ads settings for the public site. Defaults (ads off) when nothing is saved or the DB is slow. */
+export const getAdsSettings = cache(
+  (): Promise<AdsSettingsResult> =>
+    cached<AdsSettingsResult>(
+      'ads',
+      async () => {
+        const { data, error } = await supabaseAdmin.from('site_settings').select('value, updated_at').eq('key', 'ads').maybeSingle();
+        if (error && !isMissingTable(error)) throw error;
+        return toAdsResult(data?.value ?? DEFAULT_ADS_SETTINGS, data ? String(data.updated_at) : null);
+      },
+      toAdsResult(DEFAULT_ADS_SETTINGS, null)
+    )
+);

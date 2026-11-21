@@ -191,3 +191,8 @@ html.a11y-clickToRead main :is(p, h1, h2, h3, h4, li, td, th, label, dt, dd, spa
 .prose-page li { margin-bottom: 0.35rem; }
 .prose-page a { color: #1d4ed8; text-decoration: underline; text-underline-offset: 2px; }
 .prose-page strong { color: #0f172a; }
+
+/* AdSense: collapse a slot Google couldn't fill, so no empty box is left behind. */
+.lf-ad:has(ins.adsbygoogle[data-ad-status='unfilled']) {
+  display: none;
+}

@@ -131,6 +131,18 @@
       "namedRegex": "^/admin/admins(?:/)?$"
     },
     {
+      "page": "/admin/ads",
+      "regex": "^/admin/ads(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/ads(?:/)?$"
+    },
+    {
+      "page": "/admin/analytics",
+      "regex": "^/admin/analytics(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/analytics(?:/)?$"
+    },
+    {
       "page": "/admin/audit",
       "regex": "^/admin/audit(?:/)?$",
       "routeKeys": {},
@@ -173,6 +185,12 @@
       "namedRegex": "^/admin/users(?:/)?$"
     },
     {
+      "page": "/ads.txt",
+      "regex": "^/ads\\.txt(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ads\\.txt(?:/)?$"
+    },
+    {
       "page": "/api/admin/account",
       "regex": "^/api/admin/account(?:/)?$",
       "routeKeys": {},
@@ -183,6 +201,18 @@
       "regex": "^/api/admin/admins(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/admin/admins(?:/)?$"
+    },
+    {
+      "page": "/api/admin/ads",
+      "regex": "^/api/admin/ads(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/ads(?:/)?$"
+    },
+    {
+      "page": "/api/admin/analytics",
+      "regex": "^/api/admin/analytics(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/analytics(?:/)?$"
     },
     {
       "page": "/api/admin/audit",
@@ -255,6 +285,12 @@
       "regex": "^/api/admin/users(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/admin/users(?:/)?$"
+    },
+    {
+      "page": "/api/analytics",
+      "regex": "^/api/analytics(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/analytics(?:/)?$"
     },
     {
       "page": "/api/auth/login",

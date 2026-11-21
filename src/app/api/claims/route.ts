@@ -1,6 +1,7 @@
 // GET  /api/claims – the caller's claims (`mine`) and claims on the caller's items (`received`).
 // POST /api/claims – submit a 3-proof claim on a found item.
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
+import { recordServerEvent } from '@/lib/analytics';
 import { isPublicItem, getItem, insertClaim, listClaimsByClaimant, listClaimsForItems, listItems } from '@/lib/db';
 import { fail, requireAuth } from '@/lib/session';
 import { readJson, routeError, toSummaries } from '@/lib/itemView';
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
       claimantPhone: phone,
       proof1, proof2, proof3,
     });
+    after(() => recordServerEvent(request, 'claim_made', { userId: user.id, props: { category: item.category } }));
     return NextResponse.json({ success: true, data: claim }, { status: 201 });
   } catch (e: any) {
     if (e?.code === '23505') return fail(409, ALREADY_CLAIMED_ERROR, { code: 'ALREADY_CLAIMED' });

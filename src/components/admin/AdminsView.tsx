@@ -148,6 +148,8 @@ export default function AdminsView({ openCreate }: { openCreate?: boolean }) {
                 ['Contact messages', 'Yes', 'No', 'Yes'],
                 ['Pages & company details', 'Yes', 'No', 'No'],
                 ['Admin users', 'Yes', 'No', 'No'],
+                ['Analytics', 'Yes', 'No', 'Yes'],
+                ['Ads settings', 'Yes', 'No', 'No'],
                 ['Activity log', 'Yes', 'No', 'No'],
               ].map(([area, s, c, sub]) => (
                 <tr key={area}><td className="py-2 pr-4 text-slate-800">{area}</td><td className="py-2 pr-4">{s}</td><td className="py-2 pr-4">{c}</td><td className="py-2">{sub}</td></tr>

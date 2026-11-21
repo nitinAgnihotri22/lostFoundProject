@@ -511,9 +511,9 @@ export const en = {
     necessary: 'Necessary',
     necessaryDesc: 'Sign-in, language and security. Always on – the site can’t work without them.',
     analytics: 'Analytics',
-    analyticsDesc: 'Helps us understand how the site is used so we can improve it. Not used yet.',
+    analyticsDesc: 'Counts page visits and actions (like opening an item) with a random id, so we can see what works. Optional Google Analytics.',
     ads: 'Advertising',
-    adsDesc: 'Lets us show relevant ads that keep LostFound free. Not used yet.',
+    adsDesc: 'Google AdSense ads on public pages, which keep LostFound free. Never on claims, chat or your profile.',
     settings: 'Cookie settings',
   },
 
@@ -530,6 +530,10 @@ export const en = {
     home: 'Home',
     rights: '© {year} {company}. All rights reserved.',
     footerNav: 'Footer',
+  },
+
+  ads: {
+    label: 'Advertisement',
   },
 
   a11y: {

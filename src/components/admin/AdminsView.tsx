@@ -148,6 +148,8 @@ export default function AdminsView({ openCreate }: { openCreate?: boolean }) {
                 ['Contact messages', 'Yes', 'No', 'Yes'],
                 ['Pages & company details', 'Yes', 'No', 'No'],
                 ['Admin users', 'Yes', 'No', 'No'],
+                ['Boosts: approve first boosts', 'Yes', 'Yes', 'No'],
+                ['Boosts: stop a boost', 'Yes', 'No', 'Yes'],
                 ['Analytics', 'Yes', 'No', 'Yes'],
                 ['Ads settings', 'Yes', 'No', 'No'],
                 ['Activity log', 'Yes', 'No', 'No'],

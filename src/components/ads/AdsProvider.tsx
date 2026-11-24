@@ -20,6 +20,8 @@ interface AdsContextValue {
   active: boolean;
   variant: AdVariant;
   settings: AdsSettings;
+  /** Premium members see no ads (set by pages that know the signed-in user). */
+  setPremium: (premium: boolean) => void;
 }
 
 const AdsCtx = createContext<AdsContextValue | null>(null);
@@ -40,6 +42,7 @@ export default function AdsProvider({ settings, children }: { settings: AdsSetti
   // Nothing is decided on the server: consent lives in the browser's cookie.
   const [consent, setConsent] = useState<{ analytics: boolean; ads: boolean } | null>(null);
   const [bucket, setBucket] = useState<number | null>(null);
+  const [premium, setPremium] = useState(false);
   const loaded = useRef({ ads: false, ga: false });
 
   useEffect(() => {
@@ -60,7 +63,8 @@ export default function AdsProvider({ settings, children }: { settings: AdsSetti
     return () => window.removeEventListener(CONSENT_CHANGED_EVENT, sync);
   }, []);
 
-  const variant: AdVariant = consent ? adVariant(settings, bucket, consent.ads) : 'none';
+  // Premium hides ads entirely, so those visitors are left out of the ads A/B test too.
+  const variant: AdVariant = consent && !premium ? adVariant(settings, bucket, consent.ads) : 'none';
   const active = variant === 'ads';
   const gaId = consent?.analytics ? settings.gaMeasurementId : '';
 
@@ -78,7 +82,7 @@ export default function AdsProvider({ settings, children }: { settings: AdsSetti
     if (consent?.analytics) track('page_view');
   }, [pathname, consent?.analytics]);
 
-  const value = useMemo(() => ({ active, variant, settings }), [active, variant, settings]);
+  const value = useMemo(() => ({ active, variant, settings, setPremium }), [active, variant, settings]);
 
   return (
     <AdsCtx.Provider value={value}>

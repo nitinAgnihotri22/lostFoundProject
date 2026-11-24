@@ -61,6 +61,7 @@ export function mapItemRow(row: any): Item {
     hiddenReason: row.is_hidden === true && row.hidden_reason ? String(row.hidden_reason) : undefined,
     reviewStatus: row.review_status ? (String(row.review_status) as Item['reviewStatus']) : 'approved',
     reviewNote: row.review_status === 'rejected' && row.review_note ? String(row.review_note) : undefined,
+    boostedUntil: row.boosted_until && new Date(row.boosted_until).getTime() > Date.now() ? String(row.boosted_until) : undefined,
   };
 }
 

@@ -59,6 +59,11 @@ export default function ItemCard({ item, onSelect, onClaimClick, isOwner = false
             >
               {isFound ? t('itemCard.found') : t('itemCard.lost')}
             </span>
+            {item.boostedUntil && Date.parse(item.boostedUntil) > Date.now() && (
+              <span className="bg-amber-400 text-amber-950 text-[0.6875rem] font-black uppercase tracking-wide px-2 py-0.5 rounded-full shadow-md">
+                {t('boost.badge')}
+              </span>
+            )}
             {item.images.length > 1 && (
               <span className="bg-black/60 text-white backdrop-blur-md text-[0.6875rem] font-medium px-2 py-0.5 rounded-full">
                 {t('itemCard.morePhotos', { count: item.images.length - 1 })}

@@ -2,7 +2,8 @@
 // Every call sends the httpOnly session cookie; protected calls that come back
 // 401 fire `lf:unauthorized` so the page can sign the user out gracefully.
 import { trackRequest } from '@/lib/loading';
-import { Claim, ClaimWithItem, Conversation, Item, ItemDetail, Message, ProfileData } from '@/types';
+import { AppNotification, Boost, Claim, ClaimWithItem, Conversation, Item, ItemDetail, MatchSummary, Message, ProfileData, SavedSearch } from '@/types';
+import type { BoostPackage, PlanId, PlanLimits } from '@/lib/plans';
 
 export const UNAUTHORIZED_EVENT = 'lf:unauthorized';
 
@@ -117,7 +118,89 @@ export const api = {
     send: async (input: ContactInput): Promise<{ reference: string }> =>
       (await request('/api/contact', { method: 'POST', body: json(input), loadingMessage: 'loading.sendingMessage' })).data,
   },
+
+  notifications: {
+    unread: async (): Promise<number> => (await request('/api/notifications?countOnly=1', { silent: true })).data.unread,
+    list: async (): Promise<{ unread: number; notifications: AppNotification[] }> => (await request('/api/notifications', { silent: true })).data,
+    markRead: async (ids?: string[]): Promise<void> => {
+      await request('/api/notifications', { method: 'PATCH', body: json({ ids }), silent: true });
+    },
+    prefs: async (): Promise<PrefsData> => (await request('/api/notifications/prefs', { silent: true })).data,
+    savePrefs: async (patch: Partial<Omit<AlertPrefs, 'area'>> & { area?: { lat: number; lng: number; label: string } | null }): Promise<AlertPrefs> =>
+      (await request('/api/notifications/prefs', { method: 'PUT', body: json(patch), loadingMessage: 'loading.saving' })).data.prefs,
+  },
+
+  boosts: {
+    forItem: async (itemId: string): Promise<BoostInfo> => (await request(`/api/boosts?itemId=${encodeURIComponent(itemId)}`, { silent: true })).data,
+    start: async (itemId: string, pkg: BoostPackage): Promise<{ boost: Boost; needsReview: boolean }> =>
+      (await request('/api/boosts', { method: 'POST', body: json({ itemId, package: pkg }), loadingMessage: 'loading.boosting' })).data,
+    stop: async (boostId: string): Promise<void> => {
+      await request(`/api/boosts/${encodeURIComponent(boostId)}`, { method: 'DELETE', loadingMessage: 'loading.saving' });
+    },
+  },
+
+  alerts: {
+    get: async (): Promise<AlertsData> => (await request('/api/saved-searches', { loadingMessage: 'loading.alerts' })).data,
+    create: async (input: SavedSearchInput): Promise<{ search: SavedSearch; existingMatches: number }> =>
+      (await request('/api/saved-searches', { method: 'POST', body: json(input), loadingMessage: 'loading.saving' })).data,
+    update: async (id: string, patch: Partial<SavedSearchInput> & { active?: boolean }): Promise<SavedSearch> =>
+      (await request(`/api/saved-searches/${encodeURIComponent(id)}`, { method: 'PATCH', body: json(patch), loadingMessage: 'loading.saving' })).data.search,
+    remove: async (id: string): Promise<void> => {
+      await request(`/api/saved-searches/${encodeURIComponent(id)}`, { method: 'DELETE', loadingMessage: 'loading.saving' });
+    },
+  },
+
+  premium: {
+    activate: async (): Promise<void> => {
+      await request('/api/premium', { method: 'POST', loadingMessage: 'loading.saving' });
+    },
+    cancel: async (): Promise<void> => {
+      await request('/api/premium', { method: 'DELETE', loadingMessage: 'loading.saving' });
+    },
+  },
 };
+
+export interface AlertPrefs {
+  nearbyAlerts: boolean;
+  nearbyDailyLimit: 1 | 2;
+  area: { lat: number; lng: number; label: string; updatedAt: string } | null;
+  matchEmail: boolean;
+  matchPush: boolean;
+  quietStart: number;
+  quietEnd: number;
+}
+
+export interface PrefsData {
+  prefs: AlertPrefs;
+  pushDevices: number;
+  pushAvailable: boolean;
+  hasEmail: boolean;
+}
+
+export interface BoostInfo {
+  boosts: Boost[];
+  reach: Record<BoostPackage, number>;
+  quota: { used: number; limit: number };
+  textProblem: { code: string; message: string } | null;
+  paymentsEnabled: boolean;
+}
+
+export interface SavedSearchInput {
+  label: string;
+  category: string | null;
+  keywords: string;
+  location: { lat: number; lng: number; address: string };
+  radiusKm: number;
+  lostOn: string | null;
+}
+
+export interface AlertsData {
+  searches: SavedSearch[];
+  matches: MatchSummary[];
+  plan: PlanId;
+  limits: PlanLimits;
+  subscription: { id: string; since: string; periodEnd: string | null; source: string } | null;
+}
 
 export interface ContactInput {
   name: string;

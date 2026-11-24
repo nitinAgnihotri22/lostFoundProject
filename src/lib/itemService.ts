@@ -65,6 +65,10 @@ export function filterItems(items: Item[], filters: FilterState): (Item & { dist
       return true;
     })
     .sort((a, b) => {
+      // Boosted items are pinned to the top (newest boost first).
+      const ab = a.boostedUntil && Date.parse(a.boostedUntil) > Date.now() ? Date.parse(a.boostedUntil) : 0;
+      const bb = b.boostedUntil && Date.parse(b.boostedUntil) > Date.now() ? Date.parse(b.boostedUntil) : 0;
+      if (ab || bb) return bb - ab;
       if (a.distanceKm !== undefined && b.distanceKm !== undefined) return a.distanceKm - b.distanceKm;
       return new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime();
     });

@@ -8,9 +8,10 @@ import { useI18n } from '@/i18n/LanguageProvider';
 import type { TKey } from '@/i18n/translate';
 import {
   X, MapPin, Calendar, User, ShieldCheck, Share2, ChevronLeft, ChevronRight, Printer, Users,
-  MessageCircle, CheckCircle2, Trash2, RotateCcw, Mail, Phone, Loader2, Lock,
+  MessageCircle, CheckCircle2, Trash2, RotateCcw, Mail, Phone, Loader2, Lock, Rocket,
 } from 'lucide-react';
 import PrintFlyerModal from './PrintFlyerModal';
+import BoostModal from './BoostModal';
 import ClaimReviewCard from './ClaimReviewCard';
 import AdSlot from './ads/AdSlot';
 import { track } from '@/lib/track';
@@ -52,6 +53,7 @@ export default function ItemDetailModal({ item: initialItem, currentUser, onClos
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [copied, setCopied] = useState(false);
   const [showFlyerModal, setShowFlyerModal] = useState(false);
+  const [showBoost, setShowBoost] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const itemId = initialItem?.id;
@@ -230,6 +232,11 @@ export default function ItemDetailModal({ item: initialItem, currentUser, onClos
             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${isFound ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
               {isFound ? t('item.foundReport') : t('item.lostNotice')}
             </span>
+            {item.boostedUntil && Date.parse(item.boostedUntil) > Date.now() && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-amber-950">
+                <Rocket className="w-3.5 h-3.5" aria-hidden="true" /> {t('boost.badge')}
+              </span>
+            )}
             <span className="text-xs font-semibold text-gray-600 bg-gray-200/70 px-2.5 py-1 rounded-md">{t(`categories.${item.category}`)}</span>
             {!isActive && (
               <span className="text-xs font-bold uppercase tracking-wider bg-gray-800 text-white px-2.5 py-1 rounded-md">{t(STATUS_LABEL[item.status])}</span>
@@ -451,6 +458,11 @@ export default function ItemDetailModal({ item: initialItem, currentUser, onClos
           {isOwner && (
             <div className="border-t border-gray-100 pt-4 flex flex-wrap items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-gray-500 mr-auto">{t('item.manage')}</span>
+              {isActive && !item.hiddenByAdmin && (item.reviewStatus ?? 'approved') === 'approved' && (
+                <button onClick={() => setShowBoost(true)} className="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 text-white hover:bg-amber-600 shadow-sm transition flex items-center gap-1.5">
+                  <Rocket className="w-4 h-4" /> {item.boostedUntil ? t('boost.badge') : t('boost.button')}
+                </button>
+              )}
               {isActive && (
                 <button onClick={closeReport} disabled={busy} className="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition flex items-center gap-1.5 disabled:opacity-60">
                   <CheckCircle2 className="w-4 h-4" /> {isFound ? t('item.markReturned') : t('item.markFound')}
@@ -481,6 +493,7 @@ export default function ItemDetailModal({ item: initialItem, currentUser, onClos
       </div>
 
       {showFlyerModal && <PrintFlyerModal item={item} onClose={() => setShowFlyerModal(false)} />}
+      {showBoost && <BoostModal item={item} onClose={() => setShowBoost(false)} onChanged={() => { load(); onChanged?.(); }} />}
     </div>
   );
 }

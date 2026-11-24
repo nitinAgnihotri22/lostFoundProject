@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Calendar, CheckCircle2, Clock, Compass, Gift, Inbox, LogOut, Mail, MessageCircle,
-  Package, Phone, Shield, ShieldCheck, XCircle,
+  Package, Phone, Shield, ShieldCheck, XCircle, BellRing, Crown,
 } from 'lucide-react';
 import { Claim, ClaimWithItem, Item, ProfileData, User } from '@/types';
 import { getStoredUser, setStoredUser } from '@/lib/itemService';
@@ -20,6 +20,7 @@ import ClaimsReviewModal from '@/components/ClaimsReviewModal';
 import ChatPanel from '@/components/ChatPanel';
 import GlobalLoader from '@/components/GlobalLoader';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import NotificationBell from '@/components/NotificationBell';
 import { useI18n } from '@/i18n/LanguageProvider';
 import type { TKey } from '@/i18n/translate';
 
@@ -165,6 +166,7 @@ export default function ProfilePage() {
           </Link>
           <div className="flex items-center gap-2">
             <LanguageSwitcher compact />
+            <NotificationBell />
             <button
               onClick={() => { setChatConversationId(null); setChatOpen(true); }}
               aria-label={unread > 0 ? `${t('profile.messages')} (${unread})` : t('profile.messages')}
@@ -205,6 +207,10 @@ export default function ProfilePage() {
                 <span className="bg-red-500 text-white text-[0.625rem] font-bold px-1.5 py-0.5 rounded-full">{t('profile.newN', { count: stats!.claimsReceivedPending })}</span>
               )}
             </button>
+            <Link href="/alerts" className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 transition">
+              <BellRing className="w-4 h-4 text-amber-600" /> {t('nav.alerts')}
+              {user.plan === 'premium' && <Crown className="w-4 h-4 text-amber-500" aria-label="Premium" />}
+            </Link>
             <button onClick={() => setShowLogout(true)} className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-gray-300 text-sm font-bold text-gray-700 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition">
               <LogOut className="w-4 h-4" /> {t('profile.logOut')}
             </button>

@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 // Human-readable sitemap (WCAG 2.4.5 Multiple Ways). The XML version for search engines is /sitemap.xml.
 const GROUPS: { title: TKey; links: { href: string; label: TKey; external?: boolean }[] }[] = [
   { title: 'sitemap.main', links: [{ href: '/', label: 'sitemap.home' }] },
-  { title: 'sitemap.account', links: [{ href: '/profile', label: 'sitemap.profile' }] },
+  { title: 'sitemap.account', links: [{ href: '/profile', label: 'sitemap.profile' }, { href: '/alerts', label: 'nav.alerts' }] },
   {
     title: 'sitemap.info',
     links: [

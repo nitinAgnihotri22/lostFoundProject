@@ -6,6 +6,7 @@ import { User, ItemType } from '@/types';
 import { Plus, Compass, LogOut, MessageCircle } from 'lucide-react';
 import { useI18n } from '@/i18n/LanguageProvider';
 import LanguageSwitcher from './LanguageSwitcher';
+import NotificationBell from './NotificationBell';
 
 interface NavbarProps {
   currentUser: User | null;
@@ -16,6 +17,8 @@ interface NavbarProps {
   onOpenMessages?: () => void;
   /** Rendered next to the logo (the homepage puts its location picker here). */
   locationSlot?: React.ReactNode;
+  /** Open an item from a notification without leaving the page. */
+  onOpenItem?: (itemId: string) => void;
 }
 
 export default function Navbar({
@@ -26,6 +29,7 @@ export default function Navbar({
   unreadCount = 0,
   onOpenMessages,
   locationSlot,
+  onOpenItem,
 }: NavbarProps) {
   const { t } = useI18n();
   const signedIn = !!currentUser;
@@ -70,6 +74,9 @@ export default function Navbar({
             {/* Phones: short label, or icon only once signed in (more buttons to fit) */}
             <span className={signedIn ? 'hidden sm:inline md:hidden' : 'md:hidden'}>{t('nav.reportFoundShort')}</span>
           </button>
+
+          {/* Notifications (boost alerts, match alerts) */}
+          {currentUser && <NotificationBell onOpenItem={onOpenItem} />}
 
           {/* Messages */}
           {currentUser && onOpenMessages && (

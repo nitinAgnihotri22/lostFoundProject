@@ -27,6 +27,8 @@ export function privacyPolicy(lang: Lang, c: SiteSettings = siteConfig): Doc {
             'संपर्क फ़ॉर्म: नाम, ईमेल, फ़ोन (वैकल्पिक) और आपका संदेश।',
             'तकनीकी डेटा: IP पता, ब्राउज़र और डिवाइस का प्रकार, और त्रुटि लॉग।',
             'स्थान: आपकी अनुमति से ब्राउज़र का GPS स्थान, केवल आस-पास की वस्तुएँ दिखाने के लिए। हम इसे आपके खाते में सेव नहीं करते।',
+            'अलर्ट (केवल यदि आप इन्हें सेट करते हैं): आस-पास के अलर्ट के लिए आपका इलाका, लगभग 1 किमी तक; आपके मिलान अलर्ट (आपने क्या खोया, मुख्य शब्द, जगह, दायरा और तारीख); आपकी सूचना सेटिंग; और यदि आप पुश सूचनाएँ चालू करते हैं, तो आपके ब्राउज़र का एक तकनीकी पता जिससे हम उन्हें भेज सकें।',
+            'प्लान और बूस्ट: आप प्रीमियम इस्तेमाल करते हैं या नहीं, आपके शुरू किए बूस्ट और उनके नतीजे। जब तक ये मुफ़्त हैं, हम कोई भुगतान विवरण नहीं रखते।',
           ],
         ] },
         { id: 'how-we-use', title: '3. हम डेटा का उपयोग कैसे करते हैं', blocks: [
@@ -134,6 +136,8 @@ export function privacyPolicy(lang: Lang, c: SiteSettings = siteConfig): Doc {
           'Contact form: name, email, phone (optional) and your message.',
           'Technical data: IP address, browser and device type, and error logs.',
           'Location: your browser GPS position, with your permission, used only to show nearby items. We do not save it to your account.',
+          'Alerts (only if you set them up): your alert area, rounded to about 1 km, for nearby alerts; your match alerts (what you lost, keywords, place, radius and date); your notification settings; and, if you turn on push notifications, a technical address for your browser that lets us send them.',
+          'Plan and boosts: whether you use Premium, the boosts you start and their results. While these are free we store no payment details.',
         ],
       ] },
       { id: 'how-we-use', title: '3. How we use your data', blocks: [

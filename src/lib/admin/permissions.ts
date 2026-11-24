@@ -34,6 +34,9 @@ export const PERMISSIONS = {
   'audit.view': SUPER,
   'analytics.view': BOTH, // traffic, conversions and the ads A/B test
   'ads.manage': SUPER, // AdSense + Google Analytics settings
+  'boosts.view': ALL, // paid boosts (free during launch)
+  'boosts.review': REVIEWERS, // approve / reject a person's first boost
+  'boosts.manage': BOTH, // stop a running boost, run background jobs
 } as const satisfies Record<string, AdminRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

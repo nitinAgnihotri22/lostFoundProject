@@ -3,6 +3,7 @@
 // POST /api/items – report a found/lost item (token required).
 import { after, NextRequest, NextResponse } from 'next/server';
 import { recordServerEvent } from '@/lib/analytics';
+import { maybeRunJobs } from '@/lib/jobs';
 import { insertItem, listItems } from '@/lib/db';
 import { calculateDistanceKm } from '@/lib/geo';
 import { optionalAuth, requireAuth } from '@/lib/session';
@@ -13,6 +14,8 @@ import {
 } from '@/lib/validation';
 
 export async function GET(request: NextRequest) {
+  // Background jobs fallback (boost rounds, queued alerts, digest) – throttled, runs after the response.
+  after(() => maybeRunJobs());
   try {
     const viewer = await optionalAuth(request);
     const { searchParams } = request.nextUrl;

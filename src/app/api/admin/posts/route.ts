@@ -10,6 +10,7 @@
 import { after, NextRequest, NextResponse } from 'next/server';
 import { notifyPostsReviewed } from '@/lib/notifications';
 import { recordEvents } from '@/lib/analytics';
+import { matchNewItem } from '@/lib/matching';
 import { adminFail, adminRouteError, audit, requireAdmin } from '@/lib/admin/server';
 import { listPosts, reviewPosts, setPostsHidden, PostFilters } from '@/lib/admin/data';
 
@@ -69,6 +70,8 @@ export async function PATCH(req: NextRequest) {
       if (changed.length) {
         const admin = auth.admin;
         after(async () => {
+          // Approved found items go live now → check them against people's saved searches.
+          if (action === 'approve') for (const id of changed) await matchNewItem(id);
           await recordEvents(changed.map(() => ({ name: action === 'approve' ? 'post_approved' as const : 'post_rejected' as const, variant: 'none' as const })));
           const result = await notifyPostsReviewed(changed, action, reason);
           await audit(admin, 'email.review_notice', { type: 'item' }, { decision: action, ...result });

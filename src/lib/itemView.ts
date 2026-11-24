@@ -50,13 +50,18 @@ export function routeError(e: unknown, label: string): NextResponse {
   if (e instanceof ValidationError) {
     return NextResponse.json({ success: false, error: e.message, field: e.field }, { status: 400 });
   }
-  if (isMissingSchema(e)) {
+  // Errors that carry their own status + code (BoostError, billing errors).
+  const se = e as { status?: unknown; code?: unknown; message?: string };
+  if (typeof se?.status === 'number' && typeof se?.code === 'string' && se.status >= 400 && se.status < 600) {
+    return NextResponse.json({ success: false, error: se.message, code: se.code }, { status: se.status });
+  }
+  if (isMissingSchema(e) || (e as any)?.code === '42P01' || (e as any)?.code === '42703') {
     console.error(`[${label}] database schema is behind:`, (e as any).message);
     return NextResponse.json(
       {
         success: false,
         code: 'MIGRATION_REQUIRED',
-        error: 'This feature is not set up on the database yet. Run the latest files in supabase/migrations (up to 08_post_review.sql) in the Supabase SQL editor.',
+        error: 'This feature is not set up on the database yet. Run the latest files in supabase/migrations (up to 11_boosts_premium.sql) in the Supabase SQL editor.',
       },
       { status: 503 }
     );

@@ -50,6 +50,8 @@ export interface Item {
   reviewStatus?: 'pending' | 'approved' | 'rejected';
   /** Why the reviewer rejected the post (shown to the poster). */
   reviewNote?: string;
+  /** Pinned to the top with a "Boosted" label until this time (paid boost, free during launch). */
+  boostedUntil?: string;
 }
 
 /** GET /api/items/{id} – item plus what the viewer is allowed to see. */
@@ -104,6 +106,8 @@ export interface User {
   avatar?: string;
   roleSource?: 'google' | 'normal_register' | 'phone';
   roleType?: 'social' | 'email' | 'phone';
+  /** 'premium' when the user has an active Premium plan. */
+  plan?: 'free' | 'premium';
 }
 
 export interface ConversationParticipant {
@@ -164,4 +168,60 @@ export interface FilterState {
   centerLocation: GeoLocation | null;
   startDate?: string;
   endDate?: string;
+}
+
+// -------------------------------------------------------------------
+// Boosts, alerts and Premium (Phase 2 + 3 of the monetization plan)
+// -------------------------------------------------------------------
+export interface Boost {
+  id: string;
+  itemId: string;
+  package: 'local' | 'area' | 'city';
+  radiusKm: number;
+  status: 'pending_review' | 'active' | 'completed' | 'cancelled' | 'rejected';
+  reviewNote?: string;
+  startsAt?: string;
+  endsAt?: string;
+  roundsTotal: number;
+  roundsSent: number;
+  nextRoundAt?: string;
+  /** People alerted so far. */
+  recipientsCount: number;
+  /** Item views while the boost ran. */
+  viewsCount: number;
+  /** New conversations about the item since the boost started. */
+  messagesCount?: number;
+  createdAt: string;
+}
+
+export interface SavedSearch {
+  id: string;
+  label: string;
+  category: Category | null;
+  keywords: string;
+  location: GeoLocation;
+  radiusKm: number;
+  lostOn: string | null;
+  active: boolean;
+  createdAt: string;
+  matchCount?: number;
+}
+
+export interface MatchSummary {
+  id: string;
+  savedSearchId: string;
+  score: number;
+  createdAt: string;
+  item: Pick<Item, 'id' | 'title' | 'category' | 'images' | 'occurredAt' | 'status'> & { address: string; distanceKm: number };
+}
+
+export interface AppNotification {
+  id: string;
+  kind: 'boost_alert' | 'match' | 'match_digest' | 'boost_update';
+  title: string;
+  body: string;
+  url?: string;
+  itemId?: string;
+  read: boolean;
+  createdAt: string;
 }

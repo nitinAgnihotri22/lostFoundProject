@@ -1,7 +1,8 @@
 // GET    /api/items/{id} – item detail shaped for the viewer (public; token unlocks more).
 // PATCH  /api/items/{id} – poster closes/reopens the item ({ status: 'resolved' | 'active' }).
 // DELETE /api/items/{id} – poster deletes the item (claims and chats go with it).
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
+import { recordBoostView } from '@/lib/boosts';
 import { deleteItem, getItem, isPublicItem, listClaimsForItem, updateItemStatus } from '@/lib/db';
 import { fail, optionalAuth, requireAuth } from '@/lib/session';
 import { forViewer, readJson, routeError } from '@/lib/itemView';
@@ -20,6 +21,8 @@ export async function GET(request: NextRequest, { params }: Ctx) {
 
     const claims = await listClaimsForItem(item.id);
     const isOwner = !!viewer && viewer.id === item.userId;
+    // Boost results for the owner: count other people's views while boosted.
+    if (!isOwner && item.boostedUntil) after(() => recordBoostView(item.id));
     const myClaim = viewer && !isOwner ? claims.find((c) => c.claimantId === viewer.id) : undefined;
 
     const detail: ItemDetail = {

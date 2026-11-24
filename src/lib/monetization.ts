@@ -139,7 +139,7 @@ export function adVariant(s: Pick<AdsSettings, 'enabled' | 'client' | 'holdoutPe
 export const CLIENT_EVENTS = ['page_view', 'item_view', 'claim_started', 'report_started', 'ad_impression'] as const;
 export type ClientEvent = (typeof CLIENT_EVENTS)[number];
 /** Written by the server when something happens. */
-export const SERVER_EVENTS = ['item_posted', 'claim_made', 'claim_approved', 'post_approved', 'post_rejected'] as const;
+export const SERVER_EVENTS = ['item_posted', 'claim_made', 'claim_approved', 'post_approved', 'post_rejected', 'boost_started', 'premium_started', 'saved_search_created'] as const;
 export type ServerEvent = (typeof SERVER_EVENTS)[number];
 export type AnalyticsEvent = ClientEvent | ServerEvent;
 
@@ -154,4 +154,7 @@ export const EVENT_LABEL: Record<AnalyticsEvent, string> = {
   claim_approved: 'Claims approved',
   post_approved: 'Posts approved',
   post_rejected: 'Posts rejected',
+  boost_started: 'Boosts started',
+  premium_started: 'Premium activations',
+  saved_search_created: 'Match alerts created',
 };

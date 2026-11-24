@@ -44,6 +44,10 @@ const ACTION_LABEL: Record<string, string> = {
   'settings.update': 'Saved company details',
   'settings.reset': 'Reset company details',
   'ads.update': 'Saved ads & analytics settings',
+  'boost.approve': 'Approved a boost',
+  'boost.reject': 'Rejected a boost',
+  'boost.cancel': 'Stopped a boost',
+  'jobs.run': 'Ran background jobs',
 };
 
 const FILTERS: [string, string][] = [
@@ -55,6 +59,7 @@ const FILTERS: [string, string][] = [
   ['page.', 'Pages'],
   ['settings.', 'Company details'],
   ['ads.', 'Ads settings'],
+  ['boost.', 'Boosts'],
   ['message.', 'Contact messages'],
 ];
 

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "migrate": "node ./scripts/migrate_to_supabase.js",
-    "admin:create": "node ./scripts/create_admin.mjs"
+    "admin:create": "node ./scripts/create_admin.mjs",
+    "push:keys": "node scripts/push_keys.mjs"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.15.0",

@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  BarChart3, ClipboardCheck, ExternalLink, Megaphone, FileText, Inbox, LayoutDashboard, LogOut, Menu, Package, ScrollText, ShieldCheck, UserCog, Users, X,
+  BarChart3, ClipboardCheck, ExternalLink, Megaphone, Rocket, FileText, Inbox, LayoutDashboard, LogOut, Menu, Package, ScrollText, ShieldCheck, UserCog, Users, X,
 } from 'lucide-react';
 import { ADMIN_ROLE_LABEL, AdminProfile, Permission, can } from '@/lib/admin/permissions';
 import { cx, ToastProvider } from './ui';
@@ -20,6 +20,7 @@ const NAV: { href: string; label: string; icon: React.ElementType; perm: Permiss
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, perm: 'dashboard.view' },
   { href: '/admin/review', label: 'Review queue', icon: ClipboardCheck, perm: 'posts.review' },
   { href: '/admin/posts', label: 'Posts', icon: Package, perm: 'posts.view' },
+  { href: '/admin/boosts', label: 'Boosts', icon: Rocket, perm: 'boosts.view' },
   { href: '/admin/users', label: 'Website users', icon: Users, perm: 'users.view' },
   { href: '/admin/messages', label: 'Contact messages', icon: Inbox, perm: 'messages.view' },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart3, perm: 'analytics.view' },

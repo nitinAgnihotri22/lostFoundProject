@@ -24,7 +24,8 @@ import { useI18n } from '@/i18n/LanguageProvider';
 import { CATEGORIES } from '@/lib/validation';
 import { supabaseBrowser } from '@/lib/supabaseBrowser';
 import { AuthError, fetchCurrentUser, loginOrRegisterWithGoogle, logoutRequest } from '@/lib/authClient';
-import { Search, MapPin, Grid, Map as MapIcon, RotateCcw, ShieldCheck, Layers, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { Search, MapPin, Grid, Map as MapIcon, RotateCcw, ShieldCheck, Layers, Loader2, BellRing } from 'lucide-react';
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false });
 
@@ -32,6 +33,7 @@ export default function HomePage() {
   const { t } = useI18n();
   const ads = useAds();
   const infeedEvery = ads?.settings.infeedEvery ?? 8;
+  const setAdsPremium = ads?.setPremium;
   // Alerts fire from async callbacks; read the latest translator through a ref so they use the current language.
   const tRef = useRef(t);
   useEffect(() => {
@@ -192,6 +194,11 @@ export default function HomePage() {
       clearInterval(timer);
     };
   }, [currentUser]);
+
+  // Premium members see no ads.
+  useEffect(() => {
+    setAdsPremium?.(currentUser?.plan === 'premium');
+  }, [currentUser, setAdsPremium]);
 
   // Load Initial Data & Auto-detect User's Current GPS Location
   useEffect(() => {
@@ -381,6 +388,7 @@ export default function HomePage() {
         onOpenReport={handleOpenReport}
         unreadCount={unreadCount}
         onOpenMessages={() => openChat(null)}
+        onOpenItem={(itemId) => api.items.get(itemId, false).then((d) => setSelectedItem(d)).catch((e) => alert(e.message))}
         locationSlot={
           <LocationPicker
             value={centerLocation}
@@ -411,6 +419,9 @@ export default function HomePage() {
               <p className="text-xs sm:text-sm text-gray-500 mt-1">
                 {t('home.subtitle')}
               </p>
+              <Link href="/alerts" className="mt-2 inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-blue-700 hover:underline underline-offset-2">
+                <BellRing className="w-4 h-4" aria-hidden="true" /> {t('home.lostCta')}
+              </Link>
             </div>
 
             {/* Quick Stats Banner */}

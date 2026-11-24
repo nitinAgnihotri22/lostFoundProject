@@ -98,7 +98,7 @@ export default function AuthModal({
     <>
       {/* Main Auth Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
-        <div role="dialog" aria-modal="true" aria-labelledby="auth-title" className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 p-6 sm:p-8 my-auto max-h-[92vh] flex flex-col">
+        <div role="dialog" aria-modal="true" aria-labelledby="auth-title" className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-y-auto overscroll-contain border border-gray-100 p-5 sm:p-8 my-auto max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] flex flex-col">
           <button onClick={onClose} aria-label={t('auth.close')} className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition">
             <X className="w-5 h-5" />
           </button>

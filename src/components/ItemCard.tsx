@@ -39,7 +39,7 @@ export default function ItemCard({ item, onSelect, onClaimClick, isOwner = false
     >
       <div>
         {/* Image Container with Badges */}
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
+        <div className="relative aspect-[16/10] sm:aspect-[4/3] w-full overflow-hidden bg-gray-100">
           <img
             src={coverImage}
             alt=""

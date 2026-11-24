@@ -196,3 +196,24 @@ html.a11y-clickToRead main :is(p, h1, h2, h3, h4, li, td, th, label, dt, dd, spa
 .lf-ad:has(ins.adsbygoogle[data-ad-status='unfilled']) {
   display: none;
 }
+
+/* Touch screens: iOS Safari zooms the page when a field's text is under 16px.
+   Small text fields get 16px there (unlayered CSS wins over Tailwind utilities). */
+@media (pointer: coarse) {
+  input.text-xs,
+  input.text-sm,
+  select.text-xs,
+  select.text-sm,
+  textarea.text-xs,
+  textarea.text-sm {
+    font-size: 16px;
+  }
+}
+
+/* Phones/tablets: the floating accessibility button would cover a pop-up's buttons
+   (e.g. "Close" in item details), so it steps aside while one is open. */
+@media (max-width: 1023px) {
+  body:has([aria-modal='true']) .lf-a11y-fab {
+    display: none;
+  }
+}

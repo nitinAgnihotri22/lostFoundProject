@@ -272,7 +272,7 @@ export default function AccessibilityWidget() {
         aria-controls="a11y-panel"
         aria-label={t('a11y.open')}
         title={`${t('a11y.open')} (${t('a11y.shortcut')})`}
-        className="fixed left-4 bottom-4 z-[60] w-12 h-12 rounded-full bg-blue-700 text-white shadow-lg hover:bg-blue-800 flex items-center justify-center print:hidden"
+        className="lf-a11y-fab fixed left-3 bottom-3 sm:left-4 sm:bottom-4 z-[60] w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-blue-700 text-white shadow-lg hover:bg-blue-800 flex items-center justify-center print:hidden"
       >
         <Accessibility className="w-6 h-6" aria-hidden="true" />
       </button>

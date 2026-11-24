@@ -51,15 +51,15 @@
   "/(site)/sitemap/page": "/sitemap",
   "/(site)/terms/page": "/terms",
   "/admin/(panel)/account/page": "/admin/account",
-  "/admin/(panel)/ads/page": "/admin/ads",
   "/admin/(panel)/analytics/page": "/admin/analytics",
+  "/admin/(panel)/ads/page": "/admin/ads",
   "/admin/(panel)/admins/page": "/admin/admins",
   "/admin/(panel)/audit/page": "/admin/audit",
+  "/admin/(panel)/pages/page": "/admin/pages",
   "/admin/(panel)/page": "/admin",
   "/admin/(panel)/messages/page": "/admin/messages",
-  "/admin/(panel)/pages/page": "/admin/pages",
-  "/admin/(panel)/posts/page": "/admin/posts",
   "/admin/(panel)/review/page": "/admin/review",
+  "/admin/(panel)/posts/page": "/admin/posts",
   "/admin/(panel)/users/page": "/admin/users",
   "/admin/login/page": "/admin/login"
 }

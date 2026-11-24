@@ -111,7 +111,7 @@ export default function LocationPicker({
       </button>
 
       {open && (
-        <div role="dialog" aria-label={t('location.changeLocation')} className="fixed sm:absolute left-2 right-2 sm:left-0 sm:right-auto top-16 sm:top-full sm:mt-2 sm:w-[380px] bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
+        <div role="dialog" aria-label={t('location.changeLocation')} className="absolute left-0 top-full mt-2 w-[min(380px,calc(100vw-2rem))] bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
           {/* Search */}
           <div className="p-3 border-b border-gray-100">
             <div className="relative">

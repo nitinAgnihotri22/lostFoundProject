@@ -74,7 +74,7 @@ export default function ClaimModal({ item, currentUser, onClose, onSuccess }: Cl
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
       <div role="dialog" aria-modal="true" aria-labelledby="claim-title" className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden my-auto border border-gray-100">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-blue-50/40">
+        <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 bg-blue-50/40">
           <div className="flex items-center gap-2.5">
             <div className="p-2 bg-blue-600 text-white rounded-xl shadow">
               <ShieldAlert className="w-5 h-5" />
@@ -107,7 +107,7 @@ export default function ClaimModal({ item, currentUser, onClose, onSuccess }: Cl
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5">
             {/* Context preview */}
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 text-xs text-gray-700">
               {item.images[0] && (

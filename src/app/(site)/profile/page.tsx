@@ -189,12 +189,12 @@ export default function ProfilePage() {
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-black text-gray-900 truncate">{user.name}</h1>
             <div className="mt-2 flex flex-col gap-1 text-sm text-gray-600">
-              <span className="flex items-center gap-2 min-w-0"><Mail className="w-4 h-4 text-gray-400 shrink-0" /><span className="truncate">{user.email}</span></span>
+              {user.email && <span className="flex items-center gap-2 min-w-0"><Mail className="w-4 h-4 text-gray-400 shrink-0" /><span className="truncate">{user.email}</span></span>}
               {user.phone && <span className="flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400 shrink-0" />{user.phone}</span>}
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="text-[0.6875rem] font-bold uppercase tracking-wider bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                {user.roleSource === 'google' ? t('profile.googleAccount') : t('profile.emailAccount')}
+                {user.roleSource === 'google' ? t('profile.googleAccount') : user.roleSource === 'phone' ? t('profile.phoneAccount') : t('profile.emailAccount')}
               </span>
             </div>
           </div>

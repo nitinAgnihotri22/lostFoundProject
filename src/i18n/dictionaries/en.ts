@@ -468,6 +468,7 @@ export const en = {
     messages: 'Messages',
     googleAccount: 'Google account',
     emailAccount: 'Email account',
+    phoneAccount: 'Phone account',
     inbox: 'Claims Inbox ({count})',
     newN: '{count} new',
     logOut: 'Log out',

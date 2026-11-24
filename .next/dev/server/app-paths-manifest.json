@@ -1,4 +1,7 @@
 {
+  "/api/auth/me/route": "app/api/auth/me/route.js",
+  "/api/items/route": "app/api/items/route.js",
+  "/api/items/[id]/route": "app/api/items/[id]/route.js",
   "/(site)/page": "app/(site)/page.js",
-  "/admin/(panel)/page": "app/admin/(panel)/page.js"
+  "/(site)/contact/page": "app/(site)/contact/page.js"
 }

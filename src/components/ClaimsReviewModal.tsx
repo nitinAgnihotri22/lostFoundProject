@@ -32,7 +32,7 @@ export default function ClaimsReviewModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div role="dialog" aria-modal="true" aria-labelledby="inbox-title" className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col border border-gray-100">
+      <div role="dialog" aria-modal="true" aria-labelledby="inbox-title" className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] flex flex-col border border-gray-100">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
           <div className="flex items-center gap-2">
@@ -54,7 +54,7 @@ export default function ClaimsReviewModal({
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto p-6 space-y-4 flex-1">
+        <div className="overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4 flex-1">
           {claims.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-14 h-14 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">

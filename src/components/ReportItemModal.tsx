@@ -221,9 +221,9 @@ export default function ReportItemModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div role="dialog" aria-modal="true" aria-labelledby="report-title" className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
+      <div role="dialog" aria-modal="true" aria-labelledby="report-title" className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/70">
+        <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 bg-gray-50/70">
           <div>
             <h2 id="report-title" className="text-lg font-bold text-gray-900">
               {type === 'found' ? t('report.titleFound') : t('report.titleLost')}
@@ -240,7 +240,7 @@ export default function ReportItemModal({
         </div>
 
         {/* Scrollable Form */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-6 flex-1">
+        <form onSubmit={handleSubmit} className="overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5 sm:space-y-6 flex-1">
           {/* Type Selector (Found vs Lost) */}
           <div className="flex p-1 bg-gray-100 rounded-2xl" role="group">
             <button

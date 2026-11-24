@@ -59,8 +59,18 @@ export default function HomePage() {
     | null
   >(null);
 
-  // View state: 'split' | 'grid' | 'map'
-  const [viewMode, setViewMode] = useState<'split' | 'grid' | 'map'>('split');
+  // View state: 'split' | 'grid' | 'map'. Split (cards + map side by side) needs a
+  // desktop-wide screen; below that the cards view is shown instead.
+  const [viewModeChoice, setViewMode] = useState<'split' | 'grid' | 'map'>('split');
+  const [isDesktop, setIsDesktop] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  const viewMode = viewModeChoice === 'split' && !isDesktop ? 'grid' : viewModeChoice;
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -392,8 +402,8 @@ export default function HomePage() {
 
       {/* Hero & Filter Panel */}
       <section className="bg-white border-b border-gray-200/80 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
                 {t('home.title')}
@@ -404,7 +414,7 @@ export default function HomePage() {
             </div>
 
             {/* Quick Stats Banner */}
-            <div className="flex items-center gap-3 bg-blue-50/70 border border-blue-100 px-4 py-2 rounded-2xl">
+            <div className="self-start md:self-auto shrink-0 whitespace-nowrap flex items-center gap-3 bg-blue-50/70 border border-blue-100 px-3 sm:px-4 py-2 rounded-2xl">
               <div className="flex items-center gap-2 text-xs font-semibold text-blue-900">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span aria-live="polite">{t('home.foundCount', { count: initialLocationResolved ? filteredItems.length : '–' })}</span>
@@ -418,9 +428,9 @@ export default function HomePage() {
           </div>
 
           {/* Primary Filter Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* 1. Search Query */}
-            <div className="relative">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
+            {/* 1. Search Query (full width on phones and small tablets) */}
+            <div className="relative sm:col-span-2 md:col-span-1">
               <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -449,8 +459,8 @@ export default function HomePage() {
             </div>
 
             {/* 3. Search Radius (location is chosen from the picker in the navbar) + Reset */}
-            <div className="flex items-center gap-2">
-            <div className="relative flex-1">
+            <div className="flex items-center gap-2 min-w-0">
+            <div className="relative flex-1 min-w-0">
               <MapPin className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <select
                 value={radiusKm}
@@ -499,7 +509,7 @@ export default function HomePage() {
           )}
 
           {/* Subheader: View Switcher */}
-          <div className="mt-6 flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
+          <div className="mt-4 sm:mt-6 flex items-center justify-end gap-3 border-t border-gray-100 pt-3 sm:pt-4">
             {/* View Mode Buttons (Split / Grid / Map) */}
             <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
               <button

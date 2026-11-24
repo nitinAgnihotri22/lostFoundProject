@@ -468,6 +468,7 @@ export const hi: Dictionary = {
     messages: 'संदेश',
     googleAccount: 'Google खाता',
     emailAccount: 'ईमेल खाता',
+    phoneAccount: 'फ़ोन खाता',
     inbox: 'दावा इनबॉक्स ({count})',
     newN: '{count} नए',
     logOut: 'लॉग आउट',

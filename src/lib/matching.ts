@@ -212,7 +212,7 @@ export async function backfillMatches(searchRow: any): Promise<number> {
 export async function listMatches(userId: string, limit = 50): Promise<MatchSummary[]> {
   const { data, error } = await supabaseAdmin
     .from('matches')
-    .select('id, saved_search_id, score, created_at, item_id, saved_searches(lat, lng), items(id, title, category, images, occurred_at, status, address, lat, lng, is_hidden, review_status)')
+    .select('id, saved_search_id, score, created_at, item_id, saved_searches!matches_saved_search_id_fkey(lat, lng), items!matches_item_id_fkey(id, title, category, images, occurred_at, status, address, lat, lng, is_hidden, review_status)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -245,7 +245,7 @@ export async function listMatches(userId: string, limit = 50): Promise<MatchSumm
 export async function runDigest(): Promise<{ users: number; matches: number }> {
   const { data, error } = await supabaseAdmin
     .from('matches')
-    .select('id, user_id, items(title, address, city, status, is_hidden, review_status)')
+    .select('id, user_id, items!matches_item_id_fkey(title, address, city, status, is_hidden, review_status)')
     .is('notified_at', null)
     .eq('instant', false)
     .limit(5000);

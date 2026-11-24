@@ -67,16 +67,16 @@
   "/(site)/sitemap/page": "app/(site)/sitemap/page.js",
   "/(site)/terms/page": "app/(site)/terms/page.js",
   "/admin/(panel)/account/page": "app/admin/(panel)/account/page.js",
-  "/admin/(panel)/admins/page": "app/admin/(panel)/admins/page.js",
   "/admin/(panel)/ads/page": "app/admin/(panel)/ads/page.js",
-  "/admin/(panel)/analytics/page": "app/admin/(panel)/analytics/page.js",
-  "/admin/(panel)/audit/page": "app/admin/(panel)/audit/page.js",
+  "/admin/(panel)/admins/page": "app/admin/(panel)/admins/page.js",
   "/admin/(panel)/boosts/page": "app/admin/(panel)/boosts/page.js",
-  "/admin/(panel)/messages/page": "app/admin/(panel)/messages/page.js",
   "/admin/(panel)/page": "app/admin/(panel)/page.js",
   "/admin/(panel)/pages/page": "app/admin/(panel)/pages/page.js",
-  "/admin/(panel)/posts/page": "app/admin/(panel)/posts/page.js",
+  "/admin/(panel)/analytics/page": "app/admin/(panel)/analytics/page.js",
+  "/admin/(panel)/messages/page": "app/admin/(panel)/messages/page.js",
+  "/admin/(panel)/audit/page": "app/admin/(panel)/audit/page.js",
   "/admin/(panel)/review/page": "app/admin/(panel)/review/page.js",
-  "/admin/(panel)/users/page": "app/admin/(panel)/users/page.js",
-  "/admin/login/page": "app/admin/login/page.js"
+  "/admin/login/page": "app/admin/login/page.js",
+  "/admin/(panel)/posts/page": "app/admin/(panel)/posts/page.js",
+  "/admin/(panel)/users/page": "app/admin/(panel)/users/page.js"
 }

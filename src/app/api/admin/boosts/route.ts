@@ -19,7 +19,9 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, Number(sp.get('page')) || 1);
     let q = supabaseAdmin
       .from('boosts')
-      .select('*, items(id, title, description, category, type, images, address, city, status, is_hidden, review_status), users(id, name, email, phone, created_at)', { count: 'exact' })
+      // Name the foreign keys: boosts reach items and users through other tables too
+      // (boost_recipients, notifications), so a plain `users(...)` is ambiguous (PGRST201).
+      .select('*, items!boosts_item_id_fkey(id, title, description, category, type, images, address, city, status, is_hidden, review_status), users!boosts_user_id_fkey(id, name, email, phone, created_at)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range((page - 1) * PAGE, page * PAGE - 1);
     if (status && STATUSES.includes(status)) q = q.eq('status', status);
